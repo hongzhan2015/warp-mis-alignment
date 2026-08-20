@@ -1,0 +1,82 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%labels
+    Author warp-miss-alignment contributors
+    Description Warp and MissAlignment for CHTC GPU jobs
+    Warp.Version 2.0.0dev39
+    MissAlignment.Version 0.2.0
+    TorchProjectors.Version 0.13.0
+    CUDA.Version 12.9
+    Warp.Python.Version 3.11
+    MissAlignment.Python.Version 3.12
+    PyTorch.Version 2.8.0
+
+%post
+    # CHTC build nodes require a writable /tmp before apt is used.
+    chmod 1777 /tmp
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        bzip2 \
+        git
+    rm -rf /var/lib/apt/lists/*
+
+    # Install micromamba without relying on conda being present in the base image.
+    mkdir -p /opt/micromamba /opt/warp /opt/miss-alignment
+    curl -L https://micro.mamba.pm/api/micromamba/linux-64/latest \
+        | tar -xvj -C /usr/local/bin --strip-components=1 bin/micromamba
+
+    export MAMBA_ROOT_PREFIX=/opt/micromamba
+    export CONDA_OVERRIDE_CUDA=12.9
+
+    # Warp's current Conda artifact is built for Python 3.11. MissAlignment's
+    # documented stack uses Python 3.12, so keep two environments in one image
+    # instead of asking the solver for an impossible shared environment.
+    micromamba create -y -p /opt/warp \
+        -c warpem \
+        -c nvidia/label/cuda-12.9.0 \
+        -c conda-forge \
+        --channel-priority flexible \
+        warp=2.0.0dev39
+
+    micromamba create -y -p /opt/miss-alignment \
+        -c conda-forge \
+        python=3.12 \
+        cuda-toolkit=12.9 \
+        pip
+
+    # Follow MissAlignment's required PyTorch/CUDA installation order. The
+    # CUDA 12.9 torch-projectors wheel is hosted on Warp's package index;
+    # v0.11+ also supports Blackwell GPUs.
+    /opt/miss-alignment/bin/python -m pip install --no-cache-dir torch==2.8.0
+    /opt/miss-alignment/bin/python -m pip install --no-cache-dir --no-deps \
+        'torch-projectors==0.13.0' \
+        --index-url https://warpem.github.io/torch-projectors/cu129/simple/
+    /opt/miss-alignment/bin/python -m pip install --no-cache-dir \
+        miss-alignment==0.2.0
+
+    micromamba clean --all --yes
+    rm -rf /root/.cache /tmp/*
+
+%environment
+    export PATH=/opt/miss-alignment/bin:/opt/warp/bin:$PATH
+    export LD_LIBRARY_PATH=/opt/miss-alignment/lib:/opt/warp/lib:${LD_LIBRARY_PATH:-}
+    export DOTNET_ROOT=/opt/warp/share/dotnet
+    export PYTHONNOUSERSITE=1
+    export OMP_NUM_THREADS=1
+    export MKL_NUM_THREADS=1
+    export MPLCONFIGDIR=/tmp/matplotlib
+    export TORCH_HOME=/tmp/torch
+    export TORCHINDUCTOR_CACHE_DIR=/tmp/torchinductor
+
+%runscript
+    exec "$@"
+
+%test
+    command -v WarpTools
+    command -v miss-alignment
+    /opt/miss-alignment/bin/python -c "import torch; assert torch.__version__.startswith('2.8.0'); print('PyTorch', torch.__version__)"
+    /opt/miss-alignment/bin/python -c "import torch_projectors; print('torch-projectors import: OK')"

@@ -1,0 +1,29 @@
+# Generated container images and temporary build directories
+*.sif
+*.img
+*.sandbox/
+
+# HTCondor output
+logs/
+*.log
+*.out
+*.err
+
+# Cryo-ET data and model outputs should live in CHTC staging, not Git
+*.mrc
+*.mrcs
+*.st
+*.eer
+*.tif
+*.tiff
+*.ckpt
+*.pt
+*.pth
+
+# Local caches and editor files
+__pycache__/
+*.py[cod]
+.DS_Store
+.idea/
+.vscode/
+

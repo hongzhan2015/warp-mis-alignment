@@ -1,0 +1,22 @@
+# Replace USERNAME in container_image before submitting.
+universe = vanilla
+executable = run_smoke_test.sh
+
+log = logs/smoke_$(Cluster)_$(Process).log
+error = logs/smoke_$(Cluster)_$(Process).err
+output = logs/smoke_$(Cluster)_$(Process).out
+
+container_image = osdf:///chtc/staging/USERNAME/warp-miss-alignment.sif
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+requirements = (HasCHTCStaging == true)
++WantGPULab = true
++GPUJobLength = "short"
+
+request_gpus = 1
+request_cpus = 2
+request_memory = 8GB
+request_disk = 30GB
+
+queue 1

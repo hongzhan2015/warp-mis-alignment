@@ -1,0 +1,17 @@
+# CHTC requires custom Apptainer images to be built in an interactive build job:
+#   condor_submit -i apptainer-build.sub
+# Then run:
+#   apptainer build warp-miss-alignment.sif warp-miss-alignment.def
+
+universe = vanilla
+log = apptainer-build.log
+
+transfer_input_files = warp-miss-alignment.def
+
++IsBuildJob = True
+request_cpus = 8
+request_memory = 24GB
+request_disk = 60GB
+
+queue
+
