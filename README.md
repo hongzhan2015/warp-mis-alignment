@@ -47,6 +47,11 @@ apptainer build warp-miss-alignment.sif warp-miss-alignment.def
 The build downloads several large CUDA packages. If it is killed for disk
 usage, increase `request_disk` in `apptainer-build.sub` and retry.
 
+Do not add `rm -rf /tmp/*` to the definition's `%post` cleanup. Apptainer uses
+temporary rootfs and virtual-filesystem mounts under `/tmp` while building;
+attempting to remove them causes a `Device or resource busy` failure near the
+end of an otherwise successful build.
+
 After a successful build, test the commands without a GPU:
 
 ```bash

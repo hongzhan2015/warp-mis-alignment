@@ -59,7 +59,9 @@ From: ubuntu:24.04
         miss-alignment==0.2.0
 
     micromamba clean --all --yes
-    rm -rf /root/.cache /tmp/*
+    # Do not recursively clean /tmp here. During an Apptainer build it contains
+    # active bind mounts for rootfs, /proc, /sys, /dev, and generated host files.
+    rm -rf /root/.cache
 
 %environment
     export PATH=/opt/miss-alignment/bin:/opt/warp/bin:$PATH
