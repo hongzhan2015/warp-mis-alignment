@@ -65,4 +65,7 @@ From: ubuntu:24.04
     command -v pytom_create_template.py
     command -v pytom_create_mask.py
     /opt/pytom-match-pick/bin/python -c "import cupy; import pytom_tm; from importlib.metadata import version; print('pytom-match-pick', version('pytom-match-pick')); print('CuPy', cupy.__version__)"
-    pytom_match_template.py --help >/dev/null
+    # Do not execute pytom_match_template.py here, even with --help. Importing
+    # its voltools dependency immediately queries cudaGetDeviceCount(), while
+    # CHTC build nodes do not provide the runtime NVIDIA driver. The separate
+    # Condor GPU smoke test exercises the full entry point on an assigned GPU.

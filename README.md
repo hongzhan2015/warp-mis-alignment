@@ -243,6 +243,11 @@ Apptainer does not activate the conda environment when it runs `%test`. CuPy's
 conda build uses those variables to locate CUDA in
 `/opt/pytom-match-pick/targets/x86_64-linux`.
 
+The build-time `%test` verifies installation and imports CuPy, but does not run
+the PyTom command-line entry point. Its `voltools` dependency queries for a GPU
+even when invoked with `--help`, and CHTC build nodes do not expose a compatible
+runtime NVIDIA driver. The GPU smoke job performs that runtime validation.
+
 `pytom-match.sub` is configured for the final TS_2 MissAlignment
 reconstruction and its matching Warp XML. Before submitting, replace the
 `TEMPLATE` and `MASK` paths and set `PARTICLE_DIAMETER` in Angstrom for the
