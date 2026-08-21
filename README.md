@@ -156,6 +156,11 @@ time out while starting a worker if its current directory is a project tree on
 networked storage, because the worker recursively initializes a filesystem
 watcher before announcing its localhost port.
 
+The Warp launchers also add `localhost`, `127.0.0.1`, and `::1` to both
+`NO_PROXY` and `no_proxy`. Warp's parent and GPU worker exchange heartbeats by
+HTTP on a random loopback port, and an inherited site proxy can otherwise
+intercept those requests and cause a worker connection timeout.
+
 ## Important notes
 
 - The image does not include IMOD/Etomo. Warp recommends IMOD `>=4.12.50`, and

@@ -11,6 +11,9 @@ export TMPDIR="$job_scratch/warp-tmp"
 export PATH="/opt/warp/bin:$PATH"
 export LD_LIBRARY_PATH="/opt/warp/lib:${LD_LIBRARY_PATH:-}"
 export DOTNET_ROOT=/opt/warp/share/dotnet
+loopback_hosts="localhost,127.0.0.1,::1"
+export NO_PROXY="${NO_PROXY:+$NO_PROXY,}$loopback_hosts"
+export no_proxy="${no_proxy:+$no_proxy,}$loopback_hosts"
 mkdir -p "$TMPDIR"
 
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<not set>}"

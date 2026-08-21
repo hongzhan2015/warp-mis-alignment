@@ -51,6 +51,14 @@ export TMPDIR="$job_scratch/warp-tmp"
 export PATH="/opt/warp/bin:$PATH"
 export LD_LIBRARY_PATH="/opt/warp/lib:${LD_LIBRARY_PATH:-}"
 export DOTNET_ROOT=/opt/warp/share/dotnet
+
+# Warp's parent and worker communicate over HTTP on a random localhost port.
+# .NET honors HTTP(S)_PROXY, so explicitly bypass any Condor/site proxy for
+# loopback or the parent cannot send its first worker heartbeat.
+loopback_hosts="localhost,127.0.0.1,::1"
+export NO_PROXY="${NO_PROXY:+$NO_PROXY,}$loopback_hosts"
+export no_proxy="${no_proxy:+$no_proxy,}$loopback_hosts"
+
 worker_launch_directory="$job_scratch/warp-worker-launch"
 mkdir -p "$TMPDIR" "$worker_launch_directory"
 
