@@ -187,6 +187,32 @@ The Warp launchers also add `localhost`, `127.0.0.1`, and `::1` to both
 HTTP on a random loopback port, and an inherited site proxy can otherwise
 intercept those requests and cause a worker connection timeout.
 
+### Reconstruct a MissAlignment iteration
+
+`run_warp_reconstruction.sub` reconstructs directly from the Warp XML snapshot
+written by MissAlignment in `warp_tiltseries/iterN/`. Its three arguments are
+the project directory, iteration number, and reconstruction pixel size. The
+included TS_2 example reconstructs `iter8` at `12 A`:
+
+```text
+arguments = /staging/hzhan3/warp-miss-alignment-test/2810_g1/output_TS_2_run001 8 12
+```
+
+Change `8` to the iteration you want to evaluate, confirm that the matching
+directory contains an XML file, and submit:
+
+```bash
+ls /staging/hzhan3/warp-miss-alignment-test/2810_g1/output_TS_2_run001/warp_tiltseries/iter8/*.xml
+mkdir -p logs
+condor_submit run_warp_reconstruction.sub
+```
+
+Results are written separately from the baseline reconstruction under:
+
+```text
+warp_tiltseries/iter8/reconstruction/
+```
+
 ## Important notes
 
 - The image does not include IMOD/Etomo. Warp recommends IMOD `>=4.12.50`, and
