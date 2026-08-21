@@ -38,11 +38,24 @@ if (( ${#mdoc_files[@]} == 0 )); then
     echo "No MDOC files found in TS_2_Imod/mdoc" >&2
     exit 2
 fi
-if (( ${#alignment_xf[@]} != 1 || ${#alignment_tlt[@]} != 1 )); then
-    echo "Expected exactly one XF and one TLT file in warp_alignment/TS_2" >&2
+if (( ${#alignment_xf[@]} == 0 || ${#alignment_tlt[@]} == 0 )); then
+    echo "Expected at least one XF and one TLT file in warp_alignment/TS_2" >&2
     echo "XF files found: ${#alignment_xf[@]}; TLT files found: ${#alignment_tlt[@]}" >&2
     exit 2
 fi
+
+# Prefer the canonical dot-named IMOD files when alternate underscore-named
+# copies are also present. Fall back to the first matching file otherwise.
+selected_alignment_xf="${alignment_xf[0]}"
+selected_alignment_tlt="${alignment_tlt[0]}"
+if [[ -f "$source_alignment_directory/TS_2.st.xf" ]]; then
+    selected_alignment_xf="$source_alignment_directory/TS_2.st.xf"
+fi
+if [[ -f "$source_alignment_directory/TS_2.st.tlt" ]]; then
+    selected_alignment_tlt="$source_alignment_directory/TS_2.st.tlt"
+fi
+echo "Alignment XF: $selected_alignment_xf"
+echo "Alignment TLT: $selected_alignment_tlt"
 
 # ts_import names this series TS_2.st because the TomoSTAR file is
 # TS_2.st.tomostar. Warp therefore looks under warp_alignment/TS_2.st and
@@ -51,12 +64,12 @@ fi
 mkdir -p "$warp_alignment_directory"
 if [[ ! -e "$warp_alignment_directory/TS_2.st.xf" && \
       ! -L "$warp_alignment_directory/TS_2.st.xf" ]]; then
-    ln -s "../TS_2/$(basename "${alignment_xf[0]}")" \
+    ln -s "../TS_2/$(basename "$selected_alignment_xf")" \
         "$warp_alignment_directory/TS_2.st.xf"
 fi
 if [[ ! -e "$warp_alignment_directory/TS_2.st.tlt" && \
       ! -L "$warp_alignment_directory/TS_2.st.tlt" ]]; then
-    ln -s "../TS_2/$(basename "${alignment_tlt[0]}")" \
+    ln -s "../TS_2/$(basename "$selected_alignment_tlt")" \
         "$warp_alignment_directory/TS_2.st.tlt"
 fi
 if [[ ! -r "$warp_alignment_directory/TS_2.st.xf" || \

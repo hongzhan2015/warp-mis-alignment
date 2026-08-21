@@ -161,6 +161,10 @@ warp_alignment/TS_2.st/TS_2.st.xf
 warp_alignment/TS_2.st/TS_2.st.tlt
 ```
 
+If both dot-named (`TS_2.st.xf`, `TS_2.st.tlt`) and underscore-named
+(`TS_2_st.xf`, `TS_2_st.tlt`) copies exist, the launcher prefers the dot-named
+pair. Duplicate alternate names do not need to be removed.
+
 If a previous alignment import failed, Warp marks the tilt series unselected.
 The launcher runs `change_selection --select` before importing alignments so a
 corrected retry processes the series.
