@@ -4,13 +4,13 @@
 
 universe = vanilla
 executable = run_miss_alignment.sh
-arguments = /staging/USERNAME/PROJECT/config.yaml 0
+arguments = /staging/hzhan3/warp-miss-alignment-test/2810_g1/output_TS_2_run001/config.yml 0
 
 log = logs/miss_alignment_$(Cluster)_$(Process).log
 error = logs/miss_alignment_$(Cluster)_$(Process).err
 output = logs/miss_alignment_$(Cluster)_$(Process).out
 
-container_image = osdf:///chtc/staging/USERNAME/warp-miss-alignment.sif
+container_image = osdf:///chtc/staging/hzhan3/warp-miss-alignment.sif
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 
@@ -19,7 +19,7 @@ requirements = (HasCHTCStaging == true)
 +GPUJobLength = "long"
 
 request_gpus = 1
-gpus_minimum_memory = 40000
+gpus_minimum_memory = 40000M
 request_cpus = 8
 request_memory = 64GB
 request_disk = 50GB
