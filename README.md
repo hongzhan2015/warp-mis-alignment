@@ -133,6 +133,23 @@ Input/output paths should normally be under `/staging`. Resource needs vary
 substantially by WarpTools command; the values in `warp.sub` are starting
 points, not universal recommendations.
 
+For the bundled TS_2 end-to-end test, `warp-pipeline.sub` runs settings
+creation, frame-series CTF estimation, average export, TomoSTAR import,
+tilt-series settings creation, IMOD alignment import, and reconstruction. Its
+project path is currently configured as:
+
+```text
+/staging/hzhan3/warp-miss-alignment-test/2810_g1/output_TS_2_run001
+```
+
+Submit it after verifying the input directories described in
+`run_warp_pipeline.sh`:
+
+```bash
+mkdir -p logs
+condor_submit warp-pipeline.sub
+```
+
 ## Important notes
 
 - The image does not include IMOD/Etomo. Warp recommends IMOD `>=4.12.50`, and
