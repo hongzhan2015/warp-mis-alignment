@@ -150,6 +150,12 @@ mkdir -p logs
 condor_submit warp-pipeline.sub
 ```
 
+The launcher deliberately starts WarpTools from an empty directory in local
+Condor scratch while supplying absolute paths for the project. Warp dev39 can
+time out while starting a worker if its current directory is a project tree on
+networked storage, because the worker recursively initializes a filesystem
+watcher before announcing its localhost port.
+
 ## Important notes
 
 - The image does not include IMOD/Etomo. Warp recommends IMOD `>=4.12.50`, and

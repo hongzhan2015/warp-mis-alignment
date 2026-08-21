@@ -12,13 +12,21 @@ if [[ ! -d "$project_directory" ]]; then
     exit 2
 fi
 
-cd "$project_directory"
+project_directory=$(cd "$project_directory" && pwd -P)
+split_tilts_directory="$project_directory/TS_2_Imod/split_tilts"
+mdoc_directory="$project_directory/TS_2_Imod/mdoc"
+alignment_directory="$project_directory/warp_alignment"
+frameseries_directory="$project_directory/warp_frameseries"
+tomostar_directory="$project_directory/tomostar"
+tiltseries_directory="$project_directory/warp_tiltseries"
+frameseries_settings="$project_directory/warp_frameseries.settings"
+tiltseries_settings="$project_directory/warp_tiltseries.settings"
 
 shopt -s nullglob
-mrc_files=(TS_2_Imod/split_tilts/*.mrc)
-mdoc_files=(TS_2_Imod/mdoc/*.mdoc)
-alignment_xf=(warp_alignment/TS_2/*.xf)
-alignment_tlt=(warp_alignment/TS_2/*.tlt)
+mrc_files=("$split_tilts_directory"/*.mrc)
+mdoc_files=("$mdoc_directory"/*.mdoc)
+alignment_xf=("$alignment_directory"/TS_2/*.xf)
+alignment_tlt=("$alignment_directory"/TS_2/*.tlt)
 
 if (( ${#mrc_files[@]} == 0 )); then
     echo "No MRC files found in TS_2_Imod/split_tilts" >&2
@@ -33,14 +41,34 @@ if (( ${#alignment_xf[@]} == 0 || ${#alignment_tlt[@]} == 0 )); then
     exit 2
 fi
 
-mkdir -p warp_frameseries tomostar warp_tiltseries
+mkdir -p \
+    "$frameseries_directory" \
+    "$tomostar_directory" \
+    "$tiltseries_directory"
 
 job_scratch=${_CONDOR_SCRATCH_DIR:-/tmp}
 export TMPDIR="$job_scratch/warp-tmp"
 export PATH="/opt/warp/bin:$PATH"
 export LD_LIBRARY_PATH="/opt/warp/lib:${LD_LIBRARY_PATH:-}"
 export DOTNET_ROOT=/opt/warp/share/dotnet
-mkdir -p "$TMPDIR"
+worker_launch_directory="$job_scratch/warp-worker-launch"
+mkdir -p "$TMPDIR" "$worker_launch_directory"
+
+save_worker_diagnostics() {
+    local diagnostics_directory="$project_directory/warp_worker_diagnostics"
+    local diagnostic_files=("$worker_launch_directory"/worker*.out "$worker_launch_directory"/worker*.err)
+    if (( ${#diagnostic_files[@]} > 0 )); then
+        mkdir -p "$diagnostics_directory"
+        cp -f -- "${diagnostic_files[@]}" "$diagnostics_directory/" || true
+    fi
+}
+trap save_worker_diagnostics EXIT
+
+# Warp dev39 workers recursively watch their current directory before they
+# report their localhost port. Launching from a project tree on networked
+# /staging can exceed the 20-second connection timeout. Keep the working
+# directory small and local, and give WarpTools absolute data/output paths.
+cd "$worker_launch_directory"
 
 echo "Project: $project_directory"
 echo "MRC files: ${#mrc_files[@]}"
@@ -54,16 +82,16 @@ fi
 
 echo "[1/7] Creating frame-series settings"
 WarpTools create_settings \
-    --folder_data TS_2_Imod/split_tilts \
-    --folder_processing warp_frameseries \
-    --output warp_frameseries.settings \
+    --folder_data "$split_tilts_directory" \
+    --folder_processing "$frameseries_directory" \
+    --output "$frameseries_settings" \
     --extension "*.mrc" \
     --angpix 3.427 \
     --exposure 2.67
 
 echo "[2/7] Estimating frame-series CTF"
 WarpTools fs_ctf \
-    --settings warp_frameseries.settings \
+    --settings "$frameseries_settings" \
     --grid 1x1x1 \
     --range_min 40 \
     --range_max 8 \
@@ -76,39 +104,38 @@ WarpTools fs_ctf \
 
 echo "[3/7] Exporting aligned averages"
 WarpTools fs_export_micrographs \
-    --settings warp_frameseries.settings \
+    --settings "$frameseries_settings" \
     --averages
 
 echo "[4/7] Creating TomoSTAR files"
 WarpTools ts_import \
-    --mdocs TS_2_Imod/mdoc \
-    --frameseries warp_frameseries \
+    --mdocs "$mdoc_directory" \
+    --frameseries "$frameseries_directory" \
     --tilt_exposure 2.67 \
-    --output tomostar
+    --output "$tomostar_directory"
 
 echo "[5/7] Creating tilt-series settings"
 WarpTools create_settings \
-    --output warp_tiltseries.settings \
-    --folder_processing warp_tiltseries \
-    --folder_data tomostar \
+    --output "$tiltseries_settings" \
+    --folder_processing "$tiltseries_directory" \
+    --folder_data "$tomostar_directory" \
     --extension "*.tomostar" \
     --angpix 3.427 \
     --tomo_dimensions 2046x2880x2000
 
 echo "[6/7] Importing IMOD alignments"
 WarpTools ts_import_alignments \
-    --settings warp_tiltseries.settings \
-    --alignments warp_alignment \
+    --settings "$tiltseries_settings" \
+    --alignments "$alignment_directory" \
     --alignment_angpix 3.427
 
 echo "[7/7] Reconstructing tomogram"
 WarpTools ts_reconstruct \
-    --settings warp_tiltseries.settings \
+    --settings "$tiltseries_settings" \
     --angpix 13.71
 
 echo "Generated Warp XML files:"
-find warp_tiltseries -maxdepth 1 -type f -name '*.xml' -print
+find "$tiltseries_directory" -maxdepth 1 -type f -name '*.xml' -print
 echo "Generated reconstructions:"
-find warp_tiltseries/reconstruction -maxdepth 1 -type f -print
+find "$tiltseries_directory/reconstruction" -maxdepth 1 -type f -print
 echo "WarpTools pipeline completed successfully."
-
