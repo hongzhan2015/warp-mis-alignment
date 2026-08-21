@@ -16,6 +16,8 @@ project_directory=$(cd "$project_directory" && pwd -P)
 split_tilts_directory="$project_directory/TS_2_Imod/split_tilts"
 mdoc_directory="$project_directory/TS_2_Imod/mdoc"
 alignment_directory="$project_directory/warp_alignment"
+source_alignment_directory="$alignment_directory/TS_2"
+warp_alignment_directory="$alignment_directory/TS_2.st"
 frameseries_directory="$project_directory/warp_frameseries"
 tomostar_directory="$project_directory/tomostar"
 tiltseries_directory="$project_directory/warp_tiltseries"
@@ -25,8 +27,8 @@ tiltseries_settings="$project_directory/warp_tiltseries.settings"
 shopt -s nullglob
 mrc_files=("$split_tilts_directory"/*.mrc)
 mdoc_files=("$mdoc_directory"/*.mdoc)
-alignment_xf=("$alignment_directory"/TS_2/*.xf)
-alignment_tlt=("$alignment_directory"/TS_2/*.tlt)
+alignment_xf=("$source_alignment_directory"/*.xf)
+alignment_tlt=("$source_alignment_directory"/*.tlt)
 
 if (( ${#mrc_files[@]} == 0 )); then
     echo "No MRC files found in TS_2_Imod/split_tilts" >&2
@@ -36,8 +38,30 @@ if (( ${#mdoc_files[@]} == 0 )); then
     echo "No MDOC files found in TS_2_Imod/mdoc" >&2
     exit 2
 fi
-if (( ${#alignment_xf[@]} == 0 || ${#alignment_tlt[@]} == 0 )); then
-    echo "Expected both XF and TLT alignment files in warp_alignment/TS_2" >&2
+if (( ${#alignment_xf[@]} != 1 || ${#alignment_tlt[@]} != 1 )); then
+    echo "Expected exactly one XF and one TLT file in warp_alignment/TS_2" >&2
+    echo "XF files found: ${#alignment_xf[@]}; TLT files found: ${#alignment_tlt[@]}" >&2
+    exit 2
+fi
+
+# ts_import names this series TS_2.st because the TomoSTAR file is
+# TS_2.st.tomostar. Warp therefore looks under warp_alignment/TS_2.st and
+# expects TS_2.st.xf plus TS_2.st.tlt. Preserve the original IMOD files and
+# expose them to Warp through relative symbolic links.
+mkdir -p "$warp_alignment_directory"
+if [[ ! -e "$warp_alignment_directory/TS_2.st.xf" && \
+      ! -L "$warp_alignment_directory/TS_2.st.xf" ]]; then
+    ln -s "../TS_2/$(basename "${alignment_xf[0]}")" \
+        "$warp_alignment_directory/TS_2.st.xf"
+fi
+if [[ ! -e "$warp_alignment_directory/TS_2.st.tlt" && \
+      ! -L "$warp_alignment_directory/TS_2.st.tlt" ]]; then
+    ln -s "../TS_2/$(basename "${alignment_tlt[0]}")" \
+        "$warp_alignment_directory/TS_2.st.tlt"
+fi
+if [[ ! -r "$warp_alignment_directory/TS_2.st.xf" || \
+      ! -r "$warp_alignment_directory/TS_2.st.tlt" ]]; then
+    echo "Warp alignment links are missing or unreadable in warp_alignment/TS_2.st" >&2
     exit 2
 fi
 
@@ -97,7 +121,7 @@ echo "[1/7] Creating frame-series settings"
         --folder_processing warp_frameseries \
         --output warp_frameseries.settings \
         --extension "*.mrc" \
-        --angpix 3.427 \
+        --angpix 3.726 \
         --exposure 2.67
 )
 
@@ -137,23 +161,28 @@ echo "[5/7] Creating tilt-series settings"
         --folder_processing warp_tiltseries \
         --folder_data tomostar \
         --extension "*.tomostar" \
-        --angpix 3.427 \
-        --tomo_dimensions 2046x2880x2000
+        --angpix 3.726 \
+        --tomo_dimensions 4096x4096x2000
 )
 
 echo "[6/7] Importing IMOD alignments"
 (
     cd "$project_directory"
+    # A failed import marks the series unselected. Reactivate it so this
+    # retry and future reconstruction actually process the item.
+    WarpTools change_selection \
+        --settings warp_tiltseries.settings \
+        --select
     WarpTools ts_import_alignments \
         --settings warp_tiltseries.settings \
         --alignments warp_alignment \
-        --alignment_angpix 3.427
+        --alignment_angpix 3.726
 )
 
 echo "[7/7] Reconstructing tomogram"
 WarpTools ts_reconstruct \
     --settings "$tiltseries_settings" \
-    --angpix 13.71
+    --angpix 12
 
 echo "Generated Warp XML files:"
 find "$tiltseries_directory" -maxdepth 1 -type f -name '*.xml' -print

@@ -150,6 +150,21 @@ mkdir -p logs
 condor_submit warp-pipeline.sub
 ```
 
+For this TS_2 test, the launcher uses a `3.726 A` input/alignment pixel size,
+tomogram dimensions of `4096x4096x2000`, and a `12 A` reconstruction pixel
+size. The imported TomoSTAR is named `TS_2.st.tomostar`, so Warp identifies
+the series as `TS_2.st`. The launcher keeps the original files in
+`warp_alignment/TS_2/` and creates symbolic links with Warp's expected names:
+
+```text
+warp_alignment/TS_2.st/TS_2.st.xf
+warp_alignment/TS_2.st/TS_2.st.tlt
+```
+
+If a previous alignment import failed, Warp marks the tilt series unselected.
+The launcher runs `change_selection --select` before importing alignments so a
+corrected retry processes the series.
+
 The launcher deliberately starts WarpTools from an empty directory in local
 Condor scratch while supplying absolute paths for the project. Warp dev39 can
 time out while starting a worker if its current directory is a project tree on
