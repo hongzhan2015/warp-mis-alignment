@@ -14,5 +14,9 @@ export DOTNET_ROOT=/opt/warp/share/dotnet
 mkdir -p "$TMPDIR"
 
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<not set>}"
-nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+else
+    echo "nvidia-smi is not available inside this container; continuing without it."
+fi
 exec "$@"

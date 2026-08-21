@@ -2,7 +2,11 @@
 set -euo pipefail
 
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<not set>}"
-nvidia-smi
+if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi
+else
+    echo "nvidia-smi is not available inside this container; continuing with the PyTorch CUDA test."
+fi
 
 /opt/miss-alignment/bin/python - <<'PY'
 import torch

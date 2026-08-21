@@ -80,6 +80,11 @@ Inspect `logs/smoke_*.out` and `logs/smoke_*.err`. Do not start production
 work until the output ends with `Warp, MissAlignment, and CUDA smoke test
 passed.`
 
+Some CHTC container jobs expose the assigned GPU and driver libraries without
+binding the host's `nvidia-smi` executable into the container. The launchers
+treat `nvidia-smi` as an optional diagnostic; the PyTorch CUDA assertion in the
+smoke test is the authoritative check that the assigned GPU is usable.
+
 ## 4. Run MissAlignment
 
 Keep the Warp project, input data, configuration, and outputs under staging so

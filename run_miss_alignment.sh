@@ -27,7 +27,11 @@ export LD_LIBRARY_PATH="/opt/miss-alignment/lib:${LD_LIBRARY_PATH:-}"
 mkdir -p "$TMPDIR" "$TORCH_HOME" "$TORCHINDUCTOR_CACHE_DIR"
 
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<not set>}"
-nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+if command -v nvidia-smi >/dev/null 2>&1; then
+    nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv
+else
+    echo "nvidia-smi is not available inside this container; continuing without it."
+fi
 
 exec /opt/miss-alignment/bin/miss-alignment train \
     --config-file "$config_file" \
