@@ -13,8 +13,9 @@ their own licenses and terms, including:
 - [PyTorch](https://github.com/pytorch/pytorch) — BSD-style license
 - [CUDA Toolkit](https://developer.nvidia.com/cuda-toolkit) — NVIDIA license
 - [micromamba](https://github.com/mamba-org/micromamba-releases) — BSD-3-Clause
+- [pytom-match-pick](https://github.com/SBC-Utrecht/pytom-match-pick) — GPL-2.0
+- [CuPy](https://github.com/cupy/cupy) — MIT
 
 Review the applicable upstream licenses before distributing a built `.sif`
 image. The MIT license in this repository applies only to this repository's
 original recipe, submit files, scripts, and documentation.
-

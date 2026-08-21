@@ -213,6 +213,44 @@ Results are written separately from the baseline reconstruction under:
 warp_tiltseries/iter8/reconstruction/
 ```
 
+## 6. Build and run PyTom Match Pick
+
+PyTom Match Pick is kept in a separate image to isolate its CuPy stack from
+Warp and MissAlignment. The recipe pins PyTom Match Pick 0.14.0, Python 3.12,
+CuPy 14.0.1, and CUDA 12.9.
+
+Start a CHTC build job and build the image:
+
+```bash
+condor_submit -i pytom-build.sub
+apptainer build pytom-match-pick.sif pytom-match-pick.def
+mv pytom-match-pick.sif /staging/hzhan3/
+exit
+```
+
+Test CuPy on an assigned GPU:
+
+```bash
+mkdir -p logs
+condor_submit pytom-smoke-test.sub
+```
+
+The smoke-test output must end with `PyTom Match Pick and CUDA smoke test
+passed.` before template matching is submitted.
+
+`pytom-match.sub` is configured for the final TS_2 MissAlignment
+reconstruction and its matching Warp XML. Before submitting, replace the
+`TEMPLATE` and `MASK` paths and set `PARTICLE_DIAMETER` in Angstrom for the
+target structure. The wrapper uses one assigned GPU and splits the tomogram
+into `2x2x1` subvolumes to reduce GPU memory use:
+
+```bash
+condor_submit pytom-match.sub
+```
+
+Match maps, the job JSON, and other results persist under the staging-hosted
+`DESTINATION` defined in the submit file.
+
 ## Important notes
 
 - The image does not include IMOD/Etomo. Warp recommends IMOD `>=4.12.50`, and

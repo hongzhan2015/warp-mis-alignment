@@ -1,0 +1,16 @@
+# Start an interactive CHTC build job with:
+#   condor_submit -i pytom-build.sub
+# Then build with:
+#   apptainer build pytom-match-pick.sif pytom-match-pick.def
+
+universe = vanilla
+log = pytom-build.log
+
+transfer_input_files = pytom-match-pick.def
+
++IsBuildJob = True
+request_cpus = 8
+request_memory = 24GB
+request_disk = 60GB
+
+queue

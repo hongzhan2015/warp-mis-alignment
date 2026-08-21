@@ -1,0 +1,63 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%labels
+    Author warp-mis-alignment contributors
+    Description PyTom Match Pick for CHTC GPU jobs
+    PyTomMatchPick.Version 0.14.0
+    Python.Version 3.12
+    CuPy.Version 14.0.1
+    CUDA.Version 12.9
+
+%post
+    chmod 1777 /tmp
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        bzip2
+    rm -rf /var/lib/apt/lists/*
+
+    mkdir -p /opt/micromamba /opt/pytom-match-pick
+    curl -L https://micro.mamba.pm/api/micromamba/linux-64/latest \
+        | tar -xvj -C /usr/local/bin --strip-components=1 bin/micromamba
+
+    export MAMBA_ROOT_PREFIX=/opt/micromamba
+    export CONDA_OVERRIDE_CUDA=12.9
+
+    # Use the upstream project's reliable conda-style CuPy installation. The
+    # CUDA user-space libraries travel inside the SIF; CHTC injects the host
+    # NVIDIA driver when the job receives a GPU.
+    micromamba create -y -p /opt/pytom-match-pick \
+        -c conda-forge \
+        python=3.12 \
+        pip \
+        cupy=14.0.1 \
+        cuda-version=12.9
+
+    /opt/pytom-match-pick/bin/python -m pip install --no-cache-dir \
+        'pytom-match-pick[plotting]==0.14.0'
+    /opt/pytom-match-pick/bin/python -m pip check
+
+    micromamba clean --all --yes
+    rm -rf /root/.cache
+
+%environment
+    export PATH=/opt/pytom-match-pick/bin:$PATH
+    export LD_LIBRARY_PATH=/opt/pytom-match-pick/lib:${LD_LIBRARY_PATH:-}
+    export PYTHONNOUSERSITE=1
+    export OMP_NUM_THREADS=1
+    export MKL_NUM_THREADS=1
+    export MPLCONFIGDIR=/tmp/pytom-matplotlib
+    export CUPY_CACHE_DIR=/tmp/pytom-cupy-cache
+
+%runscript
+    exec "$@"
+
+%test
+    command -v pytom_match_template.py
+    command -v pytom_create_template.py
+    command -v pytom_create_mask.py
+    /opt/pytom-match-pick/bin/python -c "import cupy; import pytom_tm; from importlib.metadata import version; print('pytom-match-pick', version('pytom-match-pick')); print('CuPy', cupy.__version__)"
+    pytom_match_template.py --help >/dev/null

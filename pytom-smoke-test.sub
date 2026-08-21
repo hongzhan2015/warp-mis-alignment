@@ -1,0 +1,24 @@
+# GPU smoke test for the separate PyTom Match Pick image.
+
+universe = vanilla
+executable = run_pytom_smoke_test.sh
+
+log = logs/pytom_smoke_$(Cluster)_$(Process).log
+error = logs/pytom_smoke_$(Cluster)_$(Process).err
+output = logs/pytom_smoke_$(Cluster)_$(Process).out
+
+container_image = osdf:///chtc/staging/hzhan3/pytom-match-pick.sif
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+requirements = (HasCHTCStaging == true)
++WantGPULab = true
++GPUJobLength = "short"
+
+request_gpus = 1
+gpus_minimum_memory = 10000M
+request_cpus = 2
+request_memory = 8GB
+request_disk = 20GB
+
+queue 1
