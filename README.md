@@ -238,6 +238,11 @@ condor_submit pytom-smoke-test.sub
 The smoke-test output must end with `PyTom Match Pick and CUDA smoke test
 passed.` before template matching is submitted.
 
+The definition explicitly sets `CONDA_PREFIX` and `CUDA_PATH` because
+Apptainer does not activate the conda environment when it runs `%test`. CuPy's
+conda build uses those variables to locate CUDA in
+`/opt/pytom-match-pick/targets/x86_64-linux`.
+
 `pytom-match.sub` is configured for the final TS_2 MissAlignment
 reconstruction and its matching Warp XML. Before submitting, replace the
 `TEMPLATE` and `MASK` paths and set `PARTICLE_DIAMETER` in Angstrom for the

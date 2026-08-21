@@ -26,6 +26,8 @@ if [[ ! "$particle_diameter" =~ ^[0-9]+([.][0-9]+)?$ || \
 fi
 
 job_scratch=${_CONDOR_SCRATCH_DIR:-/tmp}
+export CONDA_PREFIX=${CONDA_PREFIX:-/opt/pytom-match-pick}
+export CUDA_PATH=${CUDA_PATH:-$CONDA_PREFIX/targets/x86_64-linux}
 export TMPDIR="$job_scratch/pytom-match-tmp"
 export CUPY_CACHE_DIR="$job_scratch/pytom-cupy-cache"
 export MPLCONFIGDIR="$job_scratch/pytom-matplotlib"

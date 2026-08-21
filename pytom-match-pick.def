@@ -44,8 +44,13 @@ From: ubuntu:24.04
     rm -rf /root/.cache
 
 %environment
-    export PATH=/opt/pytom-match-pick/bin:$PATH
-    export LD_LIBRARY_PATH=/opt/pytom-match-pick/lib:${LD_LIBRARY_PATH:-}
+    # Apptainer does not activate conda environments. CuPy's conda package
+    # uses CONDA_PREFIX to locate CUDA under targets/x86_64-linux, so expose
+    # both paths explicitly for %test and runtime jobs.
+    export CONDA_PREFIX=/opt/pytom-match-pick
+    export CUDA_PATH=/opt/pytom-match-pick/targets/x86_64-linux
+    export PATH=/opt/pytom-match-pick/bin:/opt/pytom-match-pick/targets/x86_64-linux/bin:$PATH
+    export LD_LIBRARY_PATH=/opt/pytom-match-pick/lib:/opt/pytom-match-pick/targets/x86_64-linux/lib:/opt/pytom-match-pick/targets/x86_64-linux/lib64:${LD_LIBRARY_PATH:-}
     export PYTHONNOUSERSITE=1
     export OMP_NUM_THREADS=1
     export MKL_NUM_THREADS=1
