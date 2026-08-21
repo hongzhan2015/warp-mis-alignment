@@ -75,7 +75,8 @@ trap save_worker_diagnostics EXIT
 # Warp dev39 workers recursively watch their current directory before they
 # report their localhost port. Launching from a project tree on networked
 # /staging can exceed the 20-second connection timeout. Keep the working
-# directory small and local, and give WarpTools absolute data/output paths.
+# directory small and local for GPU stages, and pass their settings by an
+# absolute path.
 cd "$worker_launch_directory"
 
 echo "Project: $project_directory"
@@ -89,13 +90,16 @@ else
 fi
 
 echo "[1/7] Creating frame-series settings"
-WarpTools create_settings \
-    --folder_data "$split_tilts_directory" \
-    --folder_processing "$frameseries_directory" \
-    --output "$frameseries_settings" \
-    --extension "*.mrc" \
-    --angpix 3.427 \
-    --exposure 2.67
+(
+    cd "$project_directory"
+    WarpTools create_settings \
+        --folder_data TS_2_Imod/split_tilts \
+        --folder_processing warp_frameseries \
+        --output warp_frameseries.settings \
+        --extension "*.mrc" \
+        --angpix 3.427 \
+        --exposure 2.67
+)
 
 echo "[2/7] Estimating frame-series CTF"
 WarpTools fs_ctf \
@@ -116,26 +120,35 @@ WarpTools fs_export_micrographs \
     --averages
 
 echo "[4/7] Creating TomoSTAR files"
-WarpTools ts_import \
-    --mdocs "$mdoc_directory" \
-    --frameseries "$frameseries_directory" \
-    --tilt_exposure 2.67 \
-    --output "$tomostar_directory"
+(
+    cd "$project_directory"
+    WarpTools ts_import \
+        --mdocs TS_2_Imod/mdoc \
+        --frameseries warp_frameseries \
+        --tilt_exposure 2.67 \
+        --output tomostar
+)
 
 echo "[5/7] Creating tilt-series settings"
-WarpTools create_settings \
-    --output "$tiltseries_settings" \
-    --folder_processing "$tiltseries_directory" \
-    --folder_data "$tomostar_directory" \
-    --extension "*.tomostar" \
-    --angpix 3.427 \
-    --tomo_dimensions 2046x2880x2000
+(
+    cd "$project_directory"
+    WarpTools create_settings \
+        --output warp_tiltseries.settings \
+        --folder_processing warp_tiltseries \
+        --folder_data tomostar \
+        --extension "*.tomostar" \
+        --angpix 3.427 \
+        --tomo_dimensions 2046x2880x2000
+)
 
 echo "[6/7] Importing IMOD alignments"
-WarpTools ts_import_alignments \
-    --settings "$tiltseries_settings" \
-    --alignments "$alignment_directory" \
-    --alignment_angpix 3.427
+(
+    cd "$project_directory"
+    WarpTools ts_import_alignments \
+        --settings warp_tiltseries.settings \
+        --alignments warp_alignment \
+        --alignment_angpix 3.427
+)
 
 echo "[7/7] Reconstructing tomogram"
 WarpTools ts_reconstruct \

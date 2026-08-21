@@ -156,6 +156,13 @@ time out while starting a worker if its current directory is a project tree on
 networked storage, because the worker recursively initializes a filesystem
 watcher before announcing its localhost port.
 
+WarpTools metadata commands are an exception: the launcher runs
+`create_settings`, `ts_import`, and `ts_import_alignments` from the project
+directory with relative paths. Warp dev39 can reinterpret an absolute output
+path as a relative path below the current directory, which would otherwise
+place settings under a false `staging/...` tree in Condor scratch. GPU worker
+commands still launch from the small local scratch directory.
+
 The Warp launchers also add `localhost`, `127.0.0.1`, and `::1` to both
 `NO_PROXY` and `no_proxy`. Warp's parent and GPU worker exchange heartbeats by
 HTTP on a random loopback port, and an inherited site proxy can otherwise
