@@ -289,8 +289,9 @@ mv aretomo3.sif /staging/hzhan3/
 exit
 ```
 
-The definition's `%test` checks the executable without requesting a GPU. Run
-the separate GPU smoke test after creating the image:
+The definition's `%test` checks that both executables are installed and
+non-empty without loading the NVIDIA driver. Run the separate GPU smoke test
+after creating the image:
 
 ```bash
 mkdir -p logs

@@ -63,9 +63,11 @@ COPY --from=builder /opt/aretomo3 /opt/aretomo3
 ENV PATH="/opt/aretomo3/bin:${PATH}"
 
 # The NVIDIA driver (including libcuda.so.1) is injected only when the image
-# runs with a GPU. Validate the installed binary without loading it here.
+# runs with a GPU. Validate both installed files without loading them here.
 RUN test -x /opt/aretomo3/bin/AreTomo3 \
-    && grep -a -q "version 2.3.1" /opt/aretomo3/bin/AreTomo3
+    && test -s /opt/aretomo3/bin/AreTomo3 \
+    && test -x /opt/aretomo3/bin/aretomo3_cuda_probe \
+    && test -s /opt/aretomo3/bin/aretomo3_cuda_probe
 
 ENTRYPOINT ["AreTomo3"]
 CMD ["--help"]

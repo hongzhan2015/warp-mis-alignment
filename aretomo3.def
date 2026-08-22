@@ -76,6 +76,11 @@ Stage: final
 %test
     command -v AreTomo3
     command -v aretomo3_cuda_probe
-    grep -a -q "version 2.3.1" /opt/aretomo3/bin/AreTomo3
+    test -x /opt/aretomo3/bin/AreTomo3
+    test -s /opt/aretomo3/bin/AreTomo3
+    test -x /opt/aretomo3/bin/aretomo3_cuda_probe
+    test -s /opt/aretomo3/bin/aretomo3_cuda_probe
+    echo "AreTomo3 build-time checks passed."
     # Build nodes do not provide the NVIDIA driver library or an assigned GPU.
-    # The Condor smoke test loads AreTomo3 and runs the CUDA probe later.
+    # The Condor smoke test verifies the version, loads AreTomo3, and runs the
+    # CUDA probe later on an execution node with an assigned GPU.
