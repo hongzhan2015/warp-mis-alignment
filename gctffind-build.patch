@@ -1,0 +1,30 @@
+diff --git a/makefile b/makefile
+index 8fd9599..0aa34d2 100644
+--- a/makefile
++++ b/makefile
+@@ -66,11 +66,12 @@ CUFLAG = -Xptxas -dlcm=ca -O2 \
+-	-gencode arch=compute_52,code=sm_52 \
+-	-gencode arch=compute_53,code=sm_53 \
+ 	-gencode arch=compute_60,code=sm_60 \
+ 	-gencode arch=compute_61,code=sm_61 \
+ 	-gencode arch=compute_70,code=sm_70 \
+ 	-gencode arch=compute_75,code=sm_75 \
+-	-gencode arch=compute_75,code=sm_80 \
+-	-gencode arch=compute_86,code=sm_86
++	-gencode arch=compute_80,code=sm_80 \
++	-gencode arch=compute_86,code=sm_86 \
++	-gencode arch=compute_89,code=sm_89 \
++	-gencode arch=compute_90,code=sm_90 \
++	-gencode arch=compute_90,code=compute_90
+ #-----------------------------------------
+ cuda: $(CUCPPS)
+ 
+@@ -77,7 +78,7 @@ cuda: $(CUCPPS)
+ compile: $(OBJS)
+ 
+ exe: $(OBJS)
+-	@g++ -g -pthread -m64 $(OBJS) \
++	@g++ -no-pie -g -pthread -m64 $(OBJS) \
+ 	$(PRJLIB)/libmrcfile.a \
+ 	$(PRJLIB)/libutil.a \
+ 	$(PRJLIB)/libcuutil.a \

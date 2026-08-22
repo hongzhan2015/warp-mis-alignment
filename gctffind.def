@@ -1,0 +1,74 @@
+Bootstrap: docker
+From: nvidia/cuda:12.1.1-devel-ubuntu22.04
+Stage: build
+
+%files
+    gctffind-build.patch /opt/src/gctffind-build.patch
+    gctffind_cuda_probe.cu /opt/src/gctffind_cuda_probe.cu
+
+%post
+    chmod 1777 /tmp
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        g++ \
+        git \
+        make \
+        patch
+    rm -rf /var/lib/apt/lists/*
+
+    git clone https://github.com/czimaginginstitute/GCtfFind.git \
+        /opt/src/GCtfFind
+    git -C /opt/src/GCtfFind checkout --detach \
+        abd0246604734a2eed42c49de4b208f29d649d8b
+    test "$(git -C /opt/src/GCtfFind rev-parse HEAD)" = \
+        "abd0246604734a2eed42c49de4b208f29d649d8b"
+    patch -d /opt/src/GCtfFind -p1 < /opt/src/gctffind-build.patch
+
+    make -C /opt/src/GCtfFind \
+        -f makefile \
+        -j"$(nproc)" \
+        CUDAHOME=/usr/local/cuda \
+        exe
+
+    install -D -m 0755 /opt/src/GCtfFind/GCtfFind \
+        /opt/gctffind/bin/GCtfFind
+    install -D -m 0644 /opt/src/GCtfFind/LICENSE.md \
+        /opt/gctffind/share/licenses/GCtfFind/LICENSE.md
+    nvcc -O2 /opt/src/gctffind_cuda_probe.cu \
+        -o /opt/gctffind/bin/gctffind_cuda_probe
+
+Bootstrap: docker
+From: nvidia/cuda:12.1.1-runtime-ubuntu22.04
+Stage: final
+
+%labels
+    Author warp-mis-alignment contributors
+    Description GCtfFind for CHTC GPU jobs
+    GCtfFind.Version 1.1.2
+    GCtfFind.Commit abd0246604734a2eed42c49de4b208f29d649d8b
+    CUDA.Version 12.1.1
+
+%files from build
+    /opt/gctffind /opt/gctffind
+
+%post
+    chmod 1777 /tmp
+
+%environment
+    export PATH=/opt/gctffind/bin:$PATH
+
+%runscript
+    exec GCtfFind "$@"
+
+%test
+    command -v GCtfFind
+    command -v gctffind_cuda_probe
+    test -x /opt/gctffind/bin/GCtfFind
+    test -s /opt/gctffind/bin/GCtfFind
+    test -x /opt/gctffind/bin/gctffind_cuda_probe
+    test -s /opt/gctffind/bin/gctffind_cuda_probe
+    echo "GCtfFind build-time checks passed."
+    # Build nodes do not provide the NVIDIA driver library or an assigned GPU.
+    # The Condor smoke test loads GCtfFind and exercises CUDA on a GPU node.

@@ -1,0 +1,63 @@
+# syntax=docker/dockerfile:1
+
+ARG CUDA_VERSION=12.1.1
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu22.04 AS builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG GCTFFIND_REF=abd0246604734a2eed42c49de4b208f29d649d8b
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        g++ \
+        git \
+        make \
+        patch \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/src
+RUN git clone https://github.com/czimaginginstitute/GCtfFind.git \
+        /opt/src/GCtfFind \
+    && git -C /opt/src/GCtfFind checkout --detach "${GCTFFIND_REF}" \
+    && test "$(git -C /opt/src/GCtfFind rev-parse HEAD)" = "${GCTFFIND_REF}"
+
+COPY gctffind-build.patch /opt/src/gctffind-build.patch
+RUN patch -d /opt/src/GCtfFind -p1 < /opt/src/gctffind-build.patch \
+    && make -C /opt/src/GCtfFind \
+        -f makefile \
+        -j"$(nproc)" \
+        CUDAHOME=/usr/local/cuda \
+        exe \
+    && install -D -m 0755 /opt/src/GCtfFind/GCtfFind \
+        /opt/gctffind/bin/GCtfFind \
+    && install -D -m 0644 /opt/src/GCtfFind/LICENSE.md \
+        /opt/gctffind/share/licenses/GCtfFind/LICENSE.md
+
+COPY gctffind_cuda_probe.cu /opt/src/gctffind_cuda_probe.cu
+RUN nvcc -O2 /opt/src/gctffind_cuda_probe.cu \
+        -o /opt/gctffind/bin/gctffind_cuda_probe
+
+FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu22.04
+
+ARG GCTFFIND_REF=abd0246604734a2eed42c49de4b208f29d649d8b
+
+LABEL org.opencontainers.image.title="GCtfFind" \
+      org.opencontainers.image.description="GCtfFind 1.1.2 with CUDA 12.1 for GPU CTF estimation" \
+      org.opencontainers.image.version="1.1.2" \
+      org.opencontainers.image.source="https://github.com/czimaginginstitute/GCtfFind" \
+      org.opencontainers.image.revision="${GCTFFIND_REF}" \
+      org.opencontainers.image.licenses="BSD-3-Clause"
+
+RUN chmod 1777 /tmp
+
+COPY --from=builder /opt/gctffind /opt/gctffind
+
+ENV PATH="/opt/gctffind/bin:${PATH}"
+
+# The NVIDIA driver is injected only when this image runs with a GPU.
+RUN test -x /opt/gctffind/bin/GCtfFind \
+    && test -s /opt/gctffind/bin/GCtfFind \
+    && test -x /opt/gctffind/bin/gctffind_cuda_probe \
+    && test -s /opt/gctffind/bin/gctffind_cuda_probe
+
+ENTRYPOINT ["GCtfFind"]
+CMD ["--help"]

@@ -1,3 +1,6 @@
 **
 !Dockerfile.aretomo3
 !aretomo3_cuda_probe.cu
+!Dockerfile.gctffind
+!gctffind-build.patch
+!gctffind_cuda_probe.cu

@@ -9,7 +9,8 @@ host and is injected by CHTC's container runtime.
 
 Separate images are provided for
 [PyTom Match Pick](https://github.com/SBC-Utrecht/pytom-match-pick) and
-[AreTomo3](https://github.com/czimaginginstitute/AreTomo3), keeping their CUDA
+[AreTomo3](https://github.com/czimaginginstitute/AreTomo3), and
+[GCtfFind](https://github.com/czimaginginstitute/GCtfFind), keeping their CUDA
 and library stacks isolated from Warp and MissAlignment.
 
 This project is not affiliated with the upstream software projects or CHTC.
@@ -335,6 +336,89 @@ alignment, reconstruction, and GPU options required for your dataset. Keep
 CHTC inputs and outputs under `/staging/hzhan3/...` so they persist after a
 Condor job ends.
 
+## 8. Build and test GCtfFind
+
+GCtfFind is kept in its own CUDA 12.1.1 image. The recipes build GCtfFind
+1.1.2 from the exact upstream commit
+`abd0246604734a2eed42c49de4b208f29d649d8b`, include the upstream license,
+and install a small CUDA allocation probe.
+
+To build the Docker image on a Linux machine with Docker:
+
+```bash
+docker build -f Dockerfile.gctffind -t gctffind:1.1.2 .
+docker run --rm --gpus all gctffind:1.1.2 --version
+```
+
+For CHTC, build the Apptainer image in an interactive build job:
+
+```bash
+condor_submit -i gctffind-build.sub
+apptainer build gctffind.sif gctffind.def
+mv gctffind.sif /staging/hzhan3/
+exit
+```
+
+The build-time test verifies the installed files without requiring a GPU.
+Then submit the authoritative GPU smoke test:
+
+```bash
+mkdir -p logs
+chmod +x run_gctffind_smoke_test.sh
+condor_submit gctffind-smoke-test.sub
+```
+
+Its output must end with `GCtfFind and CUDA smoke test passed.` The smoke job
+requests compute capability 6.0 or newer and at least 4000 MB of GPU memory.
+
+The supplied patch makes two build-only compatibility corrections. It links
+with `-no-pie` because GCtfFind bundles non-PIC static libraries, and it fixes
+the upstream Ampere target from `compute_75/sm_80` to `compute_80/sm_80`.
+It also builds native CUDA targets for `sm_60`, `sm_61`, `sm_70`, `sm_75`,
+`sm_80`, `sm_86`, `sm_89`, and `sm_90`, plus PTX for later-compatible GPUs.
+The scientific GCtfFind source is otherwise unchanged.
+
+Run `GCtfFind --help` inside the GPU job to see its full data and microscope
+options. Keep input stacks, optional tilt-angle files, and output directories
+under `/staging/hzhan3/...` so CHTC jobs can read them and results persist.
+
+### Queue multiple tilt series
+
+`gctffind-series.sub` queues ten independent one-GPU jobs for `TS_3` through
+`TS_12`. It currently reads from `/staging/hzhan3/AreTomo3_dir` and uses a
+pixel size of `3.726 A`, 300 kV, Cs 2.7 mm, amplitude contrast 0.07, and a
+512-pixel tile. Check those values before submitting.
+
+Each input stack can use either supported layout:
+
+```text
+/staging/hzhan3/AreTomo3_dir/TS_3.mrc
+/staging/hzhan3/AreTomo3_dir/TS_3/TS_3.mrc
+```
+
+If a matching `TS_3.tlt` or `TS_3.rawtlt` is next to the stack, the launcher
+passes it as `-AngFile`. The angle file is optional in GCtfFind. Outputs for
+each series are isolated under:
+
+```text
+/staging/hzhan3/AreTomo3_dir/gctffind/TS_3/
+```
+
+Submit and monitor the complete batch with:
+
+```bash
+mkdir -p logs
+chmod +x run_gctffind_series.sh
+condor_submit gctffind-series.sub
+condor_q
+```
+
+To rerun only selected series, edit the final submit-file line, for example:
+
+```text
+queue ts in 5,8,12
+```
+
 ## Important notes
 
 - The image does not include IMOD/Etomo. Warp recommends IMOD `>=4.12.50`, and
@@ -342,7 +426,7 @@ Condor job ends.
   alignment. Install/use IMOD separately if your workflow needs that step.
 - CUDA 12.9 must be supported by the execution host's driver. The smoke test
   verifies the actual scheduled GPU/driver combination for Warp and PyTom.
-  AreTomo3 uses CUDA 12.1.1 and has its own smoke test.
+  AreTomo3 and GCtfFind use CUDA 12.1.1 and have their own smoke tests.
 - `+GPUJobLength` is `short` (up to 12 hours), `medium` (default, up to 24
   hours), or `long` (up to 7 days) in CHTC's GPU Lab. The MissAlignment example
   requests `long`; checkpoint/resume from completed iterations.

@@ -1,0 +1,25 @@
+# GPU smoke test for the separate GCtfFind image.
+
+universe = vanilla
+executable = run_gctffind_smoke_test.sh
+
+log = logs/gctffind_smoke_$(Cluster)_$(Process).log
+error = logs/gctffind_smoke_$(Cluster)_$(Process).err
+output = logs/gctffind_smoke_$(Cluster)_$(Process).out
+
+container_image = osdf:///chtc/staging/hzhan3/gctffind.sif
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+requirements = (HasCHTCStaging == true)
++WantGPULab = true
++GPUJobLength = "short"
+
+request_gpus = 1
+gpus_minimum_capability = 6.0
+gpus_minimum_memory = 4000M
+request_cpus = 2
+request_memory = 8GB
+request_disk = 10GB
+
+queue 1
