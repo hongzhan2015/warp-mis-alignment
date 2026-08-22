@@ -315,6 +315,10 @@ Do not substitute `makefile11`: in the pinned AreTomo3 2.3.1 source it omits
 `MotionCor/MrcUtil/CLoadMrcMain.cpp`, producing undefined references to
 `CLoadMrcMain` during the final link.
 
+The Apptainer recipe stages the CUDA probe source under `/opt/src`. Do not
+stage it under `/tmp`: Apptainer overlays that directory while running
+`%post`, which can hide a file previously copied there by `%files`.
+
 The Docker image uses `AreTomo3` as its entry point. Mount a data directory
 and append the normal AreTomo3 options, for example:
 

@@ -3,7 +3,7 @@ From: nvidia/cuda:12.1.1-devel-ubuntu22.04
 Stage: build
 
 %files
-    aretomo3_cuda_probe.cu /tmp/aretomo3_cuda_probe.cu
+    aretomo3_cuda_probe.cu /opt/src/aretomo3_cuda_probe.cu
 
 %post
     chmod 1777 /tmp
@@ -43,7 +43,7 @@ Stage: build
         /opt/aretomo3/bin/AreTomo3
     install -D -m 0644 /opt/src/AreTomo3/LICENSE.md \
         /opt/aretomo3/share/licenses/AreTomo3/LICENSE.md
-    nvcc -O2 /tmp/aretomo3_cuda_probe.cu \
+    nvcc -O2 /opt/src/aretomo3_cuda_probe.cu \
         -o /opt/aretomo3/bin/aretomo3_cuda_probe
 
 Bootstrap: docker
