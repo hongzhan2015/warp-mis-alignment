@@ -23,12 +23,12 @@ RUN git clone https://github.com/czimaginginstitute/AreTomo3.git \
     && git -C /opt/src/AreTomo3 checkout --detach "${ARETOMO3_REF}" \
     && test "$(git -C /opt/src/AreTomo3 rev-parse HEAD)" = "${ARETOMO3_REF}" \
     && make -C /opt/src/AreTomo3 \
-        -f makefile11 \
+        -f makefile12 \
         -j"$(nproc)" \
         CUDAHOME=/usr/local/cuda \
         compile \
     && make -C /opt/src/AreTomo3 \
-        -f makefile11 \
+        -f makefile12 \
         CUDAHOME=/usr/local/cuda \
         NVCC="/usr/local/cuda/bin/nvcc -std=c++11 -Xcompiler=-no-pie" \
         exe \

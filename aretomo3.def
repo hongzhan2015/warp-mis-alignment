@@ -25,7 +25,7 @@ Stage: build
         "8a068cf74cc25b8107a4dd1053689fe9f952b000"
 
     make -C /opt/src/AreTomo3 \
-        -f makefile11 \
+        -f makefile12 \
         -j"$(nproc)" \
         CUDAHOME=/usr/local/cuda \
         compile
@@ -34,7 +34,7 @@ Stage: build
     # libraries contain non-PIC relocations. Pass -no-pie through nvcc only
     # for the final host-link invocation.
     make -C /opt/src/AreTomo3 \
-        -f makefile11 \
+        -f makefile12 \
         CUDAHOME=/usr/local/cuda \
         NVCC="/usr/local/cuda/bin/nvcc -std=c++11 -Xcompiler=-no-pie" \
         exe

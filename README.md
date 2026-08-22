@@ -310,6 +310,11 @@ default, while AreTomo3's bundled static libraries contain non-PIC objects.
 Without this link option, the build fails with an `R_X86_64_32 ... recompile
 with -fPIE` message.
 
+The build uses upstream `makefile12`, which matches the CUDA 12.1 base image.
+Do not substitute `makefile11`: in the pinned AreTomo3 2.3.1 source it omits
+`MotionCor/MrcUtil/CLoadMrcMain.cpp`, producing undefined references to
+`CLoadMrcMain` during the final link.
+
 The Docker image uses `AreTomo3` as its entry point. Mount a data directory
 and append the normal AreTomo3 options, for example:
 
