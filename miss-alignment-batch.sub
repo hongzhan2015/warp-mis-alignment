@@ -5,7 +5,7 @@ universe = vanilla
 executable = run_miss_alignment.sh
 
 project_root = /staging/hzhan3/warp-miss-alignment-test/2810_g1
-arguments = "$(project_root)/output_TS_$(ts)_run001/config.yml" 0
+arguments = $(project_root)/output_TS_$(ts)_run001/config.yml 0
 
 log = logs/miss_alignment_TS_$(ts)_$(Cluster)_$(Process).log
 error = logs/miss_alignment_TS_$(ts)_$(Cluster)_$(Process).err

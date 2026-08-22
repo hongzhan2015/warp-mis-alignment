@@ -6,7 +6,7 @@ universe = vanilla
 executable = run_warp_pipeline.sh
 
 project_root = /staging/hzhan3/warp-miss-alignment-test/2810_g1
-arguments = "$(project_root)/output_TS_$(ts)_run001" "TS_$(ts)"
+arguments = $(project_root)/output_TS_$(ts)_run001 TS_$(ts)
 
 log = logs/warp_pipeline_TS_$(ts)_$(Cluster)_$(Process).log
 error = logs/warp_pipeline_TS_$(ts)_$(Cluster)_$(Process).err
