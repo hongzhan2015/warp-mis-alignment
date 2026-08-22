@@ -193,6 +193,49 @@ The Warp launchers also add `localhost`, `127.0.0.1`, and `::1` to both
 HTTP on a random loopback port, and an inherited site proxy can otherwise
 intercept those requests and cause a worker connection timeout.
 
+### Queue TS_3 through TS_12
+
+`run_warp_pipeline.sh` accepts the project directory and an optional series
+name, so one launcher works for every `TS_N` project while retaining the
+validated TS_2 settings. `warp-pipeline-batch.sub` queues one independent GPU
+job for each series from TS_3 through TS_12. It expects this layout:
+
+```text
+/staging/hzhan3/warp-miss-alignment-test/2810_g1/
+├── output_TS_3_run001/
+│   ├── TS_3_Imod/split_tilts/*.mrc
+│   ├── TS_3_Imod/mdoc/*.mdoc
+│   └── warp_alignment/TS_3/*.{xf,tlt}
+├── output_TS_4_run001/
+└── ...
+```
+
+Submit all ten jobs with:
+
+```bash
+mkdir -p logs
+chmod +x run_warp_pipeline.sh
+condor_submit warp-pipeline-batch.sub
+```
+
+The jobs may run concurrently and write to separate project directories.
+Confirm each output ends with `WarpTools pipeline completed successfully.`
+before submitting MissAlignment. To retry only a subset, edit the last line,
+for example `queue ts in 4,7,11`.
+
+After every required Warp job passes, inspect each project's `config.yml` and
+make sure all training, Warp settings, and output paths reference that same
+`TS_N` project—not the original TS_2 directory. Then queue the separate
+MissAlignment batch:
+
+```bash
+condor_submit miss-alignment-batch.sub
+```
+
+This second submit file requests one GPU with at least 40000 MB for each
+series, matching the tested single-GPU MissAlignment configuration. It may
+remain idle longer than the Warp jobs because GPUs this large are scarcer.
+
 ### Reconstruct a MissAlignment iteration
 
 `run_warp_reconstruction.sub` reconstructs directly from the Warp XML snapshot

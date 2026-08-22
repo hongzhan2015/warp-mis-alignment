@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-    echo "Usage: $0 PROJECT_DIRECTORY" >&2
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+    echo "Usage: $0 PROJECT_DIRECTORY [SERIES_NAME]" >&2
     exit 2
 fi
 
@@ -13,11 +13,28 @@ if [[ ! -d "$project_directory" ]]; then
 fi
 
 project_directory=$(cd "$project_directory" && pwd -P)
-split_tilts_directory="$project_directory/TS_2_Imod/split_tilts"
-mdoc_directory="$project_directory/TS_2_Imod/mdoc"
+series_name=${2:-}
+if [[ -z "$series_name" ]]; then
+    project_name=$(basename "$project_directory")
+    if [[ "$project_name" =~ (TS_[0-9]+) ]]; then
+        series_name=${BASH_REMATCH[1]}
+    else
+        echo "Cannot infer TS_N from project directory; pass SERIES_NAME explicitly." >&2
+        exit 2
+    fi
+fi
+if [[ ! "$series_name" =~ ^TS_[0-9]+$ ]]; then
+    echo "Invalid series name '$series_name'; expected TS_N (for example TS_3)." >&2
+    exit 2
+fi
+
+imod_directory="$project_directory/${series_name}_Imod"
+split_tilts_directory="$imod_directory/split_tilts"
+mdoc_directory="$imod_directory/mdoc"
 alignment_directory="$project_directory/warp_alignment"
-source_alignment_directory="$alignment_directory/TS_2"
-warp_alignment_directory="$alignment_directory/TS_2.st"
+source_alignment_directory="$alignment_directory/$series_name"
+warp_series_name="${series_name}.st"
+warp_alignment_directory="$alignment_directory/$warp_series_name"
 frameseries_directory="$project_directory/warp_frameseries"
 tomostar_directory="$project_directory/tomostar"
 tiltseries_directory="$project_directory/warp_tiltseries"
@@ -31,15 +48,15 @@ alignment_xf=("$source_alignment_directory"/*.xf)
 alignment_tlt=("$source_alignment_directory"/*.tlt)
 
 if (( ${#mrc_files[@]} == 0 )); then
-    echo "No MRC files found in TS_2_Imod/split_tilts" >&2
+    echo "No MRC files found in ${series_name}_Imod/split_tilts" >&2
     exit 2
 fi
 if (( ${#mdoc_files[@]} == 0 )); then
-    echo "No MDOC files found in TS_2_Imod/mdoc" >&2
+    echo "No MDOC files found in ${series_name}_Imod/mdoc" >&2
     exit 2
 fi
 if (( ${#alignment_xf[@]} == 0 || ${#alignment_tlt[@]} == 0 )); then
-    echo "Expected at least one XF and one TLT file in warp_alignment/TS_2" >&2
+    echo "Expected at least one XF and one TLT file in warp_alignment/$series_name" >&2
     echo "XF files found: ${#alignment_xf[@]}; TLT files found: ${#alignment_tlt[@]}" >&2
     exit 2
 fi
@@ -48,33 +65,33 @@ fi
 # copies are also present. Fall back to the first matching file otherwise.
 selected_alignment_xf="${alignment_xf[0]}"
 selected_alignment_tlt="${alignment_tlt[0]}"
-if [[ -f "$source_alignment_directory/TS_2.st.xf" ]]; then
-    selected_alignment_xf="$source_alignment_directory/TS_2.st.xf"
+if [[ -f "$source_alignment_directory/$warp_series_name.xf" ]]; then
+    selected_alignment_xf="$source_alignment_directory/$warp_series_name.xf"
 fi
-if [[ -f "$source_alignment_directory/TS_2.st.tlt" ]]; then
-    selected_alignment_tlt="$source_alignment_directory/TS_2.st.tlt"
+if [[ -f "$source_alignment_directory/$warp_series_name.tlt" ]]; then
+    selected_alignment_tlt="$source_alignment_directory/$warp_series_name.tlt"
 fi
 echo "Alignment XF: $selected_alignment_xf"
 echo "Alignment TLT: $selected_alignment_tlt"
 
-# ts_import names this series TS_2.st because the TomoSTAR file is
-# TS_2.st.tomostar. Warp therefore looks under warp_alignment/TS_2.st and
-# expects TS_2.st.xf plus TS_2.st.tlt. Preserve the original IMOD files and
+# ts_import names the series TS_N.st because its TomoSTAR file is
+# TS_N.st.tomostar. Warp therefore looks under warp_alignment/TS_N.st and
+# expects TS_N.st.xf plus TS_N.st.tlt. Preserve the original IMOD files and
 # expose them to Warp through relative symbolic links.
 mkdir -p "$warp_alignment_directory"
-if [[ ! -e "$warp_alignment_directory/TS_2.st.xf" && \
-      ! -L "$warp_alignment_directory/TS_2.st.xf" ]]; then
-    ln -s "../TS_2/$(basename "$selected_alignment_xf")" \
-        "$warp_alignment_directory/TS_2.st.xf"
+if [[ ! -e "$warp_alignment_directory/$warp_series_name.xf" && \
+      ! -L "$warp_alignment_directory/$warp_series_name.xf" ]]; then
+    ln -s "../$series_name/$(basename "$selected_alignment_xf")" \
+        "$warp_alignment_directory/$warp_series_name.xf"
 fi
-if [[ ! -e "$warp_alignment_directory/TS_2.st.tlt" && \
-      ! -L "$warp_alignment_directory/TS_2.st.tlt" ]]; then
-    ln -s "../TS_2/$(basename "$selected_alignment_tlt")" \
-        "$warp_alignment_directory/TS_2.st.tlt"
+if [[ ! -e "$warp_alignment_directory/$warp_series_name.tlt" && \
+      ! -L "$warp_alignment_directory/$warp_series_name.tlt" ]]; then
+    ln -s "../$series_name/$(basename "$selected_alignment_tlt")" \
+        "$warp_alignment_directory/$warp_series_name.tlt"
 fi
-if [[ ! -r "$warp_alignment_directory/TS_2.st.xf" || \
-      ! -r "$warp_alignment_directory/TS_2.st.tlt" ]]; then
-    echo "Warp alignment links are missing or unreadable in warp_alignment/TS_2.st" >&2
+if [[ ! -r "$warp_alignment_directory/$warp_series_name.xf" || \
+      ! -r "$warp_alignment_directory/$warp_series_name.tlt" ]]; then
+    echo "Warp alignment links are missing or unreadable in warp_alignment/$warp_series_name" >&2
     exit 2
 fi
 
@@ -117,6 +134,7 @@ trap save_worker_diagnostics EXIT
 cd "$worker_launch_directory"
 
 echo "Project: $project_directory"
+echo "Series: $series_name"
 echo "MRC files: ${#mrc_files[@]}"
 echo "MDOC files: ${#mdoc_files[@]}"
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<not set>}"
@@ -130,7 +148,7 @@ echo "[1/7] Creating frame-series settings"
 (
     cd "$project_directory"
     WarpTools create_settings \
-        --folder_data TS_2_Imod/split_tilts \
+        --folder_data "${series_name}_Imod/split_tilts" \
         --folder_processing warp_frameseries \
         --output warp_frameseries.settings \
         --extension "*.mrc" \
@@ -160,7 +178,7 @@ echo "[4/7] Creating TomoSTAR files"
 (
     cd "$project_directory"
     WarpTools ts_import \
-        --mdocs TS_2_Imod/mdoc \
+        --mdocs "${series_name}_Imod/mdoc" \
         --frameseries warp_frameseries \
         --tilt_exposure 2.67 \
         --output tomostar
