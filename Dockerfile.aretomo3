@@ -1,0 +1,63 @@
+# syntax=docker/dockerfile:1
+
+ARG CUDA_VERSION=12.1.1
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu22.04 AS builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG ARETOMO3_REF=8a068cf74cc25b8107a4dd1053689fe9f952b000
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        g++ \
+        git \
+        libtiff-dev \
+        make \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/src
+RUN git clone https://github.com/czimaginginstitute/AreTomo3.git \
+        /opt/src/AreTomo3 \
+    && git -C /opt/src/AreTomo3 checkout --detach "${ARETOMO3_REF}" \
+    && test "$(git -C /opt/src/AreTomo3 rev-parse HEAD)" = "${ARETOMO3_REF}" \
+    && make -C /opt/src/AreTomo3 \
+        -f makefile11 \
+        -j"$(nproc)" \
+        CUDAHOME=/usr/local/cuda \
+        exe \
+    && install -D -m 0755 /opt/src/AreTomo3/AreTomo3 \
+        /opt/aretomo3/bin/AreTomo3 \
+    && install -D -m 0644 /opt/src/AreTomo3/LICENSE.md \
+        /opt/aretomo3/share/licenses/AreTomo3/LICENSE.md
+
+COPY aretomo3_cuda_probe.cu /tmp/aretomo3_cuda_probe.cu
+RUN nvcc -O2 /tmp/aretomo3_cuda_probe.cu \
+        -o /opt/aretomo3/bin/aretomo3_cuda_probe
+
+FROM nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG ARETOMO3_REF=8a068cf74cc25b8107a4dd1053689fe9f952b000
+
+LABEL org.opencontainers.image.title="AreTomo3" \
+      org.opencontainers.image.description="AreTomo3 2.3.1 with CUDA 12.1 for GPU cryo-ET processing" \
+      org.opencontainers.image.version="2.3.1" \
+      org.opencontainers.image.source="https://github.com/czimaginginstitute/AreTomo3" \
+      org.opencontainers.image.revision="${ARETOMO3_REF}" \
+      org.opencontainers.image.licenses="BSD-3-Clause"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libtiff5 \
+    && rm -rf /var/lib/apt/lists/* \
+    && chmod 1777 /tmp
+
+COPY --from=builder /opt/aretomo3 /opt/aretomo3
+
+ENV PATH="/opt/aretomo3/bin:${PATH}"
+
+# The NVIDIA driver (including libcuda.so.1) is injected only when the image
+# runs with a GPU. Validate the installed binary without loading it here.
+RUN test -x /opt/aretomo3/bin/AreTomo3 \
+    && grep -a -q "version 2.3.1" /opt/aretomo3/bin/AreTomo3
+
+ENTRYPOINT ["AreTomo3"]
+CMD ["--help"]

@@ -15,6 +15,7 @@ their own licenses and terms, including:
 - [micromamba](https://github.com/mamba-org/micromamba-releases) — BSD-3-Clause
 - [pytom-match-pick](https://github.com/SBC-Utrecht/pytom-match-pick) — GPL-2.0
 - [CuPy](https://github.com/cupy/cupy) — MIT
+- [AreTomo3](https://github.com/czimaginginstitute/AreTomo3) — BSD-3-Clause
 
 Review the applicable upstream licenses before distributing a built `.sif`
 image. The MIT license in this repository applies only to this repository's

@@ -1,0 +1,72 @@
+Bootstrap: docker
+From: nvidia/cuda:12.1.1-devel-ubuntu22.04
+Stage: build
+
+%files
+    aretomo3_cuda_probe.cu /tmp/aretomo3_cuda_probe.cu
+
+%post
+    chmod 1777 /tmp
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        g++ \
+        git \
+        libtiff-dev \
+        make
+    rm -rf /var/lib/apt/lists/*
+
+    git clone https://github.com/czimaginginstitute/AreTomo3.git \
+        /opt/src/AreTomo3
+    git -C /opt/src/AreTomo3 checkout --detach \
+        8a068cf74cc25b8107a4dd1053689fe9f952b000
+    test "$(git -C /opt/src/AreTomo3 rev-parse HEAD)" = \
+        "8a068cf74cc25b8107a4dd1053689fe9f952b000"
+
+    make -C /opt/src/AreTomo3 \
+        -f makefile11 \
+        -j"$(nproc)" \
+        CUDAHOME=/usr/local/cuda \
+        exe
+
+    install -D -m 0755 /opt/src/AreTomo3/AreTomo3 \
+        /opt/aretomo3/bin/AreTomo3
+    install -D -m 0644 /opt/src/AreTomo3/LICENSE.md \
+        /opt/aretomo3/share/licenses/AreTomo3/LICENSE.md
+    nvcc -O2 /tmp/aretomo3_cuda_probe.cu \
+        -o /opt/aretomo3/bin/aretomo3_cuda_probe
+
+Bootstrap: docker
+From: nvidia/cuda:12.1.1-runtime-ubuntu22.04
+Stage: final
+
+%labels
+    Author warp-mis-alignment contributors
+    Description AreTomo3 for CHTC GPU jobs
+    AreTomo3.Version 2.3.1
+    AreTomo3.Commit 8a068cf74cc25b8107a4dd1053689fe9f952b000
+    CUDA.Version 12.1.1
+
+%files from build
+    /opt/aretomo3 /opt/aretomo3
+
+%post
+    chmod 1777 /tmp
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends libtiff5
+    rm -rf /var/lib/apt/lists/*
+
+%environment
+    export PATH=/opt/aretomo3/bin:$PATH
+
+%runscript
+    exec AreTomo3 "$@"
+
+%test
+    command -v AreTomo3
+    command -v aretomo3_cuda_probe
+    grep -a -q "version 2.3.1" /opt/aretomo3/bin/AreTomo3
+    # Build nodes do not provide the NVIDIA driver library or an assigned GPU.
+    # The Condor smoke test loads AreTomo3 and runs the CUDA probe later.

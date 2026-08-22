@@ -1,13 +1,18 @@
-# Warp + MissAlignment on CHTC
+# Cryo-ET GPU containers on CHTC
 
-An unofficial, community-maintained recipe for building one
+Unofficial, community-maintained recipes for building one
 Apptainer/Singularity image containing [Warp](https://github.com/warpem/warp)
 and [MissAlignment](https://github.com/warpem/miss-alignment), then running it
 through HTCondor on [CHTC](https://chtc.cs.wisc.edu/). The image contains
 CUDA 12.9 user-space libraries; the NVIDIA driver remains on the execution
 host and is injected by CHTC's container runtime.
 
-This project is not affiliated with the Warp, MissAlignment, or CHTC teams.
+Separate images are provided for
+[PyTom Match Pick](https://github.com/SBC-Utrecht/pytom-match-pick) and
+[AreTomo3](https://github.com/czimaginginstitute/AreTomo3), keeping their CUDA
+and library stacks isolated from Warp and MissAlignment.
+
+This project is not affiliated with the upstream software projects or CHTC.
 
 ## Compatibility
 
@@ -261,13 +266,67 @@ condor_submit pytom-match.sub
 Match maps, the job JSON, and other results persist under the staging-hosted
 `DESTINATION` defined in the submit file.
 
+## 7. Build and test AreTomo3
+
+AreTomo3 is kept in a third image. Both recipes build AreTomo3 2.3.1 from the
+exact upstream commit `8a068cf74cc25b8107a4dd1053689fe9f952b000` using CUDA
+12.1.1. The final image contains the runtime libraries, AreTomo3 executable,
+upstream license, and a small CUDA allocation probe.
+
+To build the Docker image on a Linux machine with Docker:
+
+```bash
+docker build -f Dockerfile.aretomo3 -t aretomo3:2.3.1 .
+docker run --rm --gpus all aretomo3:2.3.1 --version
+```
+
+For CHTC, build the equivalent Apptainer image in an interactive build job:
+
+```bash
+condor_submit -i aretomo3-build.sub
+apptainer build aretomo3.sif aretomo3.def
+mv aretomo3.sif /staging/hzhan3/
+exit
+```
+
+The definition's `%test` checks the executable without requesting a GPU. Run
+the separate GPU smoke test after creating the image:
+
+```bash
+mkdir -p logs
+chmod +x run_aretomo3_smoke_test.sh
+condor_submit aretomo3-smoke-test.sub
+```
+
+Its output must end with `AreTomo3 and CUDA smoke test passed.` The smoke job
+requests compute capability 7.0 or newer because the upstream CUDA 12.1
+makefile builds for `sm_70`, `sm_75`, `sm_80`, `sm_86`, `sm_89`, and `sm_90`.
+This excludes CHTC P100 GPUs (`sm_60`) but includes the RTX 2080 Ti used by
+your earlier tests.
+
+The Docker image uses `AreTomo3` as its entry point. Mount a data directory
+and append the normal AreTomo3 options, for example:
+
+```bash
+docker run --rm --gpus all \
+  -v /path/to/project:/data \
+  aretomo3:2.3.1 \
+  -InMrc /data/tilt-series.mrc -OutDir /data/aretomo3-output
+```
+
+That last command is only a path-layout example; add the microscope,
+alignment, reconstruction, and GPU options required for your dataset. Keep
+CHTC inputs and outputs under `/staging/hzhan3/...` so they persist after a
+Condor job ends.
+
 ## Important notes
 
 - The image does not include IMOD/Etomo. Warp recommends IMOD `>=4.12.50`, and
   the MissAlignment workflow may use Etomo patch tracking for initial
   alignment. Install/use IMOD separately if your workflow needs that step.
 - CUDA 12.9 must be supported by the execution host's driver. The smoke test
-  verifies the actual scheduled GPU/driver combination.
+  verifies the actual scheduled GPU/driver combination for Warp and PyTom.
+  AreTomo3 uses CUDA 12.1.1 and has its own smoke test.
 - `+GPUJobLength` is `short` (up to 12 hours), `medium` (default, up to 24
   hours), or `long` (up to 7 days) in CHTC's GPU Lab. The MissAlignment example
   requests `long`; checkpoint/resume from completed iterations.

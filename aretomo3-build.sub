@@ -1,0 +1,16 @@
+# Start an interactive CHTC build job with:
+#   condor_submit -i aretomo3-build.sub
+# Then build with:
+#   apptainer build aretomo3.sif aretomo3.def
+
+universe = vanilla
+log = aretomo3-build.log
+
+transfer_input_files = aretomo3.def, aretomo3_cuda_probe.cu
+
++IsBuildJob = True
+request_cpus = 8
+request_memory = 24GB
+request_disk = 60GB
+
+queue
