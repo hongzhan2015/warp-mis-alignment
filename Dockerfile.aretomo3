@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/src
+# Compile first with the upstream flags. Ubuntu enables PIE at the final link
+# by default, but AreTomo3's bundled static libraries are non-PIC, so the
+# separate link invocation passes -no-pie through nvcc to g++.
 RUN git clone https://github.com/czimaginginstitute/AreTomo3.git \
         /opt/src/AreTomo3 \
     && git -C /opt/src/AreTomo3 checkout --detach "${ARETOMO3_REF}" \
@@ -23,6 +26,11 @@ RUN git clone https://github.com/czimaginginstitute/AreTomo3.git \
         -f makefile11 \
         -j"$(nproc)" \
         CUDAHOME=/usr/local/cuda \
+        compile \
+    && make -C /opt/src/AreTomo3 \
+        -f makefile11 \
+        CUDAHOME=/usr/local/cuda \
+        NVCC="/usr/local/cuda/bin/nvcc -std=c++11 -Xcompiler=-no-pie" \
         exe \
     && install -D -m 0755 /opt/src/AreTomo3/AreTomo3 \
         /opt/aretomo3/bin/AreTomo3 \

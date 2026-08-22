@@ -28,6 +28,15 @@ Stage: build
         -f makefile11 \
         -j"$(nproc)" \
         CUDAHOME=/usr/local/cuda \
+        compile
+
+    # Ubuntu links PIE executables by default, while AreTomo3's bundled static
+    # libraries contain non-PIC relocations. Pass -no-pie through nvcc only
+    # for the final host-link invocation.
+    make -C /opt/src/AreTomo3 \
+        -f makefile11 \
+        CUDAHOME=/usr/local/cuda \
+        NVCC="/usr/local/cuda/bin/nvcc -std=c++11 -Xcompiler=-no-pie" \
         exe
 
     install -D -m 0755 /opt/src/AreTomo3/AreTomo3 \

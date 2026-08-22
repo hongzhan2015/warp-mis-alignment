@@ -304,6 +304,12 @@ makefile builds for `sm_70`, `sm_75`, `sm_80`, `sm_86`, `sm_89`, and `sm_90`.
 This excludes CHTC P100 GPUs (`sm_60`) but includes the RTX 2080 Ti used by
 your earlier tests.
 
+The recipes compile the objects first and link the executable separately with
+`-Xcompiler=-no-pie`. This is required because Ubuntu enables PIE linking by
+default, while AreTomo3's bundled static libraries contain non-PIC objects.
+Without this link option, the build fails with an `R_X86_64_32 ... recompile
+with -fPIE` message.
+
 The Docker image uses `AreTomo3` as its entry point. Mount a data directory
 and append the normal AreTomo3 options, for example:
 
