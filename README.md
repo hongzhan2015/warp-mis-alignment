@@ -173,9 +173,15 @@ input, expanded data, caches, and compressed output cannot all fit in 100 GB.
 
 For TS_3 through TS_12, `miss-alignment-archive-batch.sub` supplies all five
 archive-launcher arguments: input archive, result archive, project name, start
-iteration, and the shared parent `config.yaml`. It starts each series at
-iteration 0. The archive launcher uses an existing prepared `tiltstack` when
-present; otherwise it creates one locally at 10 A/px from
+iteration, and the Condor-transferred `miss-alignment-config.yml` template. It
+starts each series at iteration 0. The launcher generates a private runtime
+`output_TS_N_run001/config.yml` for every job and rewrites
+`general.training_directory` to the extracted
+`output_TS_N_run001/warp_tiltseries` path in Condor scratch. The generated file
+is used for training and included in the result archive. Therefore the
+template's placeholder training directory does not need to be edited for each
+TS. The archive launcher uses an existing prepared `tiltstack` when present;
+otherwise it creates one locally at 10 A/px from
 `warp_frameseries/average/*.mrc`. Thus a completed full Warp archive can be
 used directly without expanding it in staging:
 

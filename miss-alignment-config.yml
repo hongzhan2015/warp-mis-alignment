@@ -1,0 +1,47 @@
+general:
+  # General template value. Each archive job creates output_TS_N_run001/config.yml
+  # and replaces this with that job's extracted warp_tiltseries directory.
+  training_directory: /REWRITTEN/FOR/EACH/TS/warp_tiltseries
+  apply_ctf: false
+  iteration_settings:
+    - {downsample: 3, alignment: anchoring}
+    - {downsample: 2, alignment: anchoring}
+    - {downsample: 1, alignment: global}
+    - {downsample: 1, alignment: global}
+    - {downsample: 1, alignment: [3, 3]}
+    - {downsample: 1, alignment: [3, 3]}
+    - {downsample: 1, alignment: [3, 3]}
+    - {downsample: 1, alignment: [3, 3]}
+  seed: 45132
+
+model_training:
+  model_architecture: default
+  model_checkpoint: null
+  loss_margin: 0.5
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  max_epochs_per_iteration: 30
+  warmup_steps: 500
+  multistep_lr_scheduler:
+    milestones: [5, 15]
+    gamma: 0.5
+
+data_loading:
+  batch_size: 32
+  patch_size: 96
+  steps_per_epoch: 1000
+
+shift_generation:
+  trajectory_probability: 0.5
+  trajectory_max_shift: 10.0
+  jitter_probability: 0.5
+  jitter_max_std: 2.0
+  outlier_probability: 0.5
+  outlier_max_shift: 20.0
+  fracture_probability: 0.5
+  fracture_max_shift: 20.0
+
+tilt_series_alignment:
+  patch_size: 96
+  patch_overlap: 0.1
+  batch_size: 32

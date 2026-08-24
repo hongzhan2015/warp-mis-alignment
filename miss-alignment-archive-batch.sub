@@ -1,13 +1,13 @@
-# Queue archive-mode MissAlignment for TS_3 through TS_12. A shared config is
-# copied into each extracted project; its training_directory is rewritten only
-# in the runtime copy to point at that job's local Condor scratch directory.
+# Queue archive-mode MissAlignment for TS_3 through TS_12. Condor transfers one
+# config template for every job. The wrapper rewrites training_directory in a
+# job-local runtime copy to point at the extracted project in Condor scratch.
 
 universe = vanilla
 executable = run_miss_alignment_archive.sh
-transfer_input_files = rewrite_miss_alignment_config.py
+transfer_input_files = rewrite_miss_alignment_config.py, miss-alignment-config.yml
 
 project_root = /staging/hzhan3/warp-miss-alignment-test/2810_g1
-shared_config = $(project_root)/config.yaml
+shared_config = miss-alignment-config.yml
 input_archive = $(project_root)/output_TS_$(ts)_run001.tar.gz
 output_archive = $(project_root)/output_TS_$(ts)_run001_miss-alignment.tar.gz
 start_iteration = 0

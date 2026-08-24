@@ -49,9 +49,9 @@ extract_root="$job_scratch/archive-work"
 local_input="$job_scratch/input.tar.gz"
 local_output="$job_scratch/output.tar.gz"
 member_list="$job_scratch/archive-members.txt"
-runtime_config="$job_scratch/runtime-config.yml"
 project_directory="$extract_root/$project_name"
 training_directory="$project_directory/warp_tiltseries"
+runtime_config="$project_directory/config.yml"
 
 mkdir -p "$extract_root"
 cp "$input_archive" "$local_input"
@@ -87,8 +87,7 @@ if [[ ! -d "$project_directory" ]]; then
 fi
 
 if [[ -n "$external_config" ]]; then
-    config_file="$project_directory/config.yaml"
-    cp "$external_config" "$config_file"
+    config_file="$external_config"
 else
     config_file="$project_directory/config.yml"
     if [[ ! -r "$config_file" ]]; then
@@ -147,6 +146,9 @@ miss_alignment_command=${MISS_ALIGNMENT_COMMAND:-/opt/miss-alignment/bin/miss-al
     "$config_file" \
     "$runtime_config" \
     "$training_directory"
+
+echo "Generated per-project config: $runtime_config"
+echo "Training directory: $training_directory"
 
 export TMPDIR="$job_scratch/miss-alignment-tmp"
 export TORCH_HOME="$job_scratch/torch"
