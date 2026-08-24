@@ -162,9 +162,11 @@ condor_submit miss-alignment-archive.sub
 ```
 
 The launcher validates archive paths, extracts locally, and changes only a
-runtime copy of `general.training_directory`. It reuses a prepared tilt stack
-when present; otherwise it adds `--prepare-stacks 10.0` when the full Warp
-frame averages are available. On normal success or a handled failure it
+runtime copy of `general.training_directory`. It also relocates absolute project
+paths embedded in the archived Warp XML files from their former staging path to
+the extracted Condor scratch project. It reuses a prepared tilt stack when
+present; otherwise it adds `--prepare-stacks 10.0` when the full Warp frame
+averages are available. On normal success or a handled failure it
 packages the project as `output_TS_2_run001_miss-alignment.tar.gz`; the
 original input is not overwritten. A hard eviction can still kill the job
 before compression finishes, so direct-to-staging mode remains safer for very

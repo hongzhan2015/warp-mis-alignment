@@ -103,6 +103,18 @@ if [[ ! -d "$training_directory" ]]; then
     exit 2
 fi
 
+miss_alignment_python=${MISS_ALIGNMENT_PYTHON:-/opt/miss-alignment/bin/python}
+miss_alignment_command=${MISS_ALIGNMENT_COMMAND:-/opt/miss-alignment/bin/miss-alignment}
+
+# Warp XML stores absolute data/processing paths. After an archive is extracted
+# into Condor scratch, relocate those paths so prepare-stacks finds the local
+# warp_frameseries/average files rather than the former staging directory.
+"$miss_alignment_python" \
+    "$launcher_directory/rewrite_warp_xml_paths.py" \
+    "$training_directory" \
+    "$project_name" \
+    "$project_directory"
+
 shopt -s nullglob
 working_xmls=("$training_directory"/*.xml)
 prepared_stacks=("$training_directory"/tiltstack/*/*.st)
@@ -137,9 +149,6 @@ if (( start_iteration > 0 )); then
         exit 2
     fi
 fi
-
-miss_alignment_python=${MISS_ALIGNMENT_PYTHON:-/opt/miss-alignment/bin/python}
-miss_alignment_command=${MISS_ALIGNMENT_COMMAND:-/opt/miss-alignment/bin/miss-alignment}
 
 "$miss_alignment_python" \
     "$launcher_directory/rewrite_miss_alignment_config.py" \
