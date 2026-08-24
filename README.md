@@ -324,6 +324,12 @@ unchanged. The submit file requests 100 GB of local disk; increase it when the
 compressed input, expanded data, Warp products, and replacement archive need
 more space.
 
+The archive launchers also recognize a plain tar file that was accidentally
+given a `.tar.gz` suffix (for example, one created with `tar -cvf`). They print
+a warning, extract it without gzip, and always write the replacement with
+`tar -czf`, correcting the format. New archives should still be created with
+`tar -czf` and checked with `gzip -t` before submission.
+
 After every required Warp job passes, inspect each project's `config.yml` and
 make sure all training, Warp settings, and output paths reference that same
 `TS_N` project—not the original TS_2 directory. Then queue the separate

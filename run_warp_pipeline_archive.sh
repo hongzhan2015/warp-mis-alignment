@@ -42,7 +42,18 @@ project_directory="$extract_root/$project_name"
 
 mkdir -p "$extract_root"
 cp "$project_archive" "$local_input"
-tar -tzf "$local_input" > "$member_list"
+if gzip -t "$local_input" 2>/dev/null; then
+    input_format=gzip
+    tar -tzf "$local_input" > "$member_list"
+elif tar -tf "$local_input" >/dev/null 2>&1; then
+    input_format=plain
+    echo "WARNING: input has a .tar.gz name but is an uncompressed tar archive."
+    echo "The replacement archive will be gzip-compressed."
+    tar -tf "$local_input" > "$member_list"
+else
+    echo "Input is neither a valid gzip-compressed tar nor a plain tar archive." >&2
+    exit 2
+fi
 while IFS= read -r member; do
     case "$member" in
         /*|..|../*|*/..|*/../*)
@@ -52,7 +63,11 @@ while IFS= read -r member; do
     esac
 done < "$member_list"
 
-tar -xzf "$local_input" -C "$extract_root"
+if [[ "$input_format" == gzip ]]; then
+    tar -xzf "$local_input" -C "$extract_root"
+else
+    tar -xf "$local_input" -C "$extract_root"
+fi
 if [[ ! -d "$project_directory" ]]; then
     echo "Archive must contain a top-level $project_name/ directory." >&2
     exit 2
