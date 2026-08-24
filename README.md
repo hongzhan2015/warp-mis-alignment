@@ -121,6 +121,55 @@ completed iteration:
 arguments = /staging/USERNAME/PROJECT/config.yaml 3
 ```
 
+### Archive mode for staging file-count limits
+
+`miss-alignment-archive.sub` keeps the expanded project in local Condor
+scratch. Staging contains the input archive and a separately named result
+archive instead of thousands of project files. The TS_2 example resumes at
+iteration 6 from:
+
+```text
+output_TS_2_run001.tar.gz
+```
+
+The input archive must contain one top-level project directory:
+
+```text
+output_TS_2_run001/
+├── config.yml
+└── warp_tiltseries/
+    ├── TS_2.st.xml
+    ├── tiltstack/TS_2.st/TS_2.st.st
+    └── iter6/{TS_2.st.xml,model.ckpt}
+```
+
+Create the minimal input archive from the directory containing the project:
+
+```bash
+tar -czf output_TS_2_run001.tar.gz \
+  output_TS_2_run001/config.yml \
+  output_TS_2_run001/warp_tiltseries/TS_2.st.xml \
+  output_TS_2_run001/warp_tiltseries/tiltstack \
+  output_TS_2_run001/warp_tiltseries/iter6
+```
+
+Place the archive at the `input_archive` path in
+`miss-alignment-archive.sub`, then submit:
+
+```bash
+chmod +x run_miss_alignment_archive.sh
+condor_submit miss-alignment-archive.sub
+```
+
+The launcher validates archive paths, extracts locally, changes only a runtime
+copy of `general.training_directory`, and intentionally omits
+`--prepare-stacks`. On normal success or a handled failure it packages the
+project as `output_TS_2_run001_miss-alignment.tar.gz`; the original input is
+not overwritten. A hard eviction can still kill the job before compression
+finishes, so direct-to-staging mode remains safer for very frequent checkpoint
+persistence. Increase `request_disk` if the compressed input, expanded data,
+caches, and compressed output cannot all fit in 100 GB.
+
 For multi-GPU training, request all GPUs in the same Condor job and update the
 device lists and CPU count together. MissAlignment does not support spreading
 one training run over multiple nodes. A multi-GPU request may also wait much

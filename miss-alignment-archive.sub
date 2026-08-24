@@ -1,0 +1,35 @@
+# Archive-mode TS_2 example. The input archive must contain the top-level
+# directory output_TS_2_run001/ with config.yml and warp_tiltseries/ inside it.
+
+universe = vanilla
+executable = run_miss_alignment_archive.sh
+transfer_input_files = rewrite_miss_alignment_config.py
+
+project_root = /staging/hzhan3/warp-miss-alignment-test/2810_g1
+input_archive = $(project_root)/output_TS_2_run001.tar.gz
+output_archive = $(project_root)/output_TS_2_run001_miss-alignment.tar.gz
+arguments = $(input_archive) $(output_archive) output_TS_2_run001 6
+
+log = logs/miss_alignment_archive_$(Cluster)_$(Process).log
+error = logs/miss_alignment_archive_$(Cluster)_$(Process).err
+output = logs/miss_alignment_archive_$(Cluster)_$(Process).out
+
+container_image = osdf:///chtc/staging/hzhan3/warp-miss-alignment.sif
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+# Results are written directly to the staging output archive. Do not transfer
+# the locally extracted project (thousands of files) back to the access point.
+transfer_output_files = ""
+
+requirements = (HasCHTCStaging == true)
++WantGPULab = true
++GPUJobLength = "long"
+
+request_gpus = 1
+gpus_minimum_memory = 40000M
+request_cpus = 8
+request_memory = 64GB
+# Must hold the compressed input, extracted project, caches, and output archive.
+request_disk = 100GB
+
+queue 1
