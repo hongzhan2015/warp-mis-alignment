@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 4 ]]; then
-    echo "Usage: $0 INPUT.tar.gz OUTPUT.tar.gz PROJECT_NAME START_ITERATION" >&2
+if [[ $# -lt 4 || $# -gt 5 ]]; then
+    echo "Usage: $0 INPUT.tar.gz OUTPUT.tar.gz PROJECT_NAME START_ITERATION [CONFIG_YAML]" >&2
     exit 2
 fi
 
@@ -10,6 +10,7 @@ input_archive=$1
 output_archive=$2
 project_name=$3
 start_iteration=$4
+external_config=${5:-}
 
 if [[ ! -r "$input_archive" ]]; then
     echo "Cannot read input archive: $input_archive" >&2
@@ -29,6 +30,10 @@ if [[ ! "$project_name" =~ ^[A-Za-z0-9._-]+$ ]]; then
 fi
 if [[ ! "$start_iteration" =~ ^[0-9]+$ ]]; then
     echo "START_ITERATION must be a non-negative integer." >&2
+    exit 2
+fi
+if [[ -n "$external_config" && ! -r "$external_config" ]]; then
+    echo "Cannot read external config: $external_config" >&2
     exit 2
 fi
 
@@ -81,9 +86,14 @@ if [[ ! -d "$project_directory" ]]; then
     exit 2
 fi
 
-config_file="$project_directory/config.yml"
-if [[ ! -r "$config_file" ]]; then
+if [[ -n "$external_config" ]]; then
     config_file="$project_directory/config.yaml"
+    cp "$external_config" "$config_file"
+else
+    config_file="$project_directory/config.yml"
+    if [[ ! -r "$config_file" ]]; then
+        config_file="$project_directory/config.yaml"
+    fi
 fi
 if [[ ! -r "$config_file" ]]; then
     echo "Cannot find config.yml or config.yaml in $project_directory" >&2
@@ -101,17 +111,24 @@ if (( ${#working_xmls[@]} == 0 )); then
     echo "No top-level Warp XML files found in $training_directory" >&2
     exit 2
 fi
+prepare_stack_args=()
 if (( ${#prepared_stacks[@]} == 0 )); then
-    echo "No prepared tilt stack found under $training_directory/tiltstack" >&2
-    echo "Create it once with --prepare-stacks before using archive mode." >&2
-    exit 2
-fi
-for stack in "${prepared_stacks[@]}"; do
-    if [[ ! -s "$stack" ]]; then
-        echo "Prepared tilt stack is empty: $stack" >&2
+    frame_averages=("$project_directory"/warp_frameseries/average/*.mrc)
+    if (( ${#frame_averages[@]} == 0 )); then
+        echo "No prepared tilt stack or Warp frame averages were found." >&2
+        echo "Expected tiltstack/*/*.st or warp_frameseries/average/*.mrc" >&2
         exit 2
     fi
-done
+    echo "No prepared tilt stack found; creating it locally at 10.0 A/px."
+    prepare_stack_args=(--prepare-stacks 10.0)
+else
+    for stack in "${prepared_stacks[@]}"; do
+        if [[ ! -s "$stack" ]]; then
+            echo "Prepared tilt stack is empty: $stack" >&2
+            exit 2
+        fi
+    done
+fi
 
 if (( start_iteration > 0 )); then
     iteration_directory="$training_directory/iter$start_iteration"
@@ -162,7 +179,8 @@ set +e
     --training-devices 0 \
     --reconstruction-devices 0,0,0 \
     --dataloaders-per-trainer 5 \
-    --start-at-iteration "$start_iteration" &
+    --start-at-iteration "$start_iteration" \
+    "${prepare_stack_args[@]}" &
 child_pid=$!
 wait "$child_pid"
 train_status=$?
