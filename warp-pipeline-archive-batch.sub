@@ -1,0 +1,33 @@
+# Queue one archive-based WarpTools job for each series from TS_3 through TS_12.
+# Staging contains output_TS_N_run001.tar.gz, not the expanded project tree.
+
+universe = vanilla
+executable = run_warp_pipeline_archive.sh
+transfer_input_files = run_warp_pipeline.sh
+
+project_root = /staging/hzhan3/warp-miss-alignment-test/2810_g1
+project_archive = $(project_root)/output_TS_$(ts)_run001.tar.gz
+arguments = $(project_archive) output_TS_$(ts)_run001 TS_$(ts)
+
+log = logs/warp_archive_TS_$(ts)_$(Cluster)_$(Process).log
+error = logs/warp_archive_TS_$(ts)_$(Cluster)_$(Process).err
+output = logs/warp_archive_TS_$(ts)_$(Cluster)_$(Process).out
+
+container_image = osdf:///chtc/staging/hzhan3/warp-miss-alignment.sif
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+# The wrapper updates the archive directly in staging. Never transfer the
+# expanded local project into the access-point home directory.
+transfer_output_files = ""
+
+requirements = (HasCHTCStaging == true)
++WantGPULab = true
++GPUJobLength = "medium"
+
+request_gpus = 1
+request_cpus = 4
+request_memory = 32GB
+# Must hold compressed input, expanded project, Warp outputs, and new archive.
+request_disk = 100GB
+
+queue ts in 3,4,5,6,7,8,9,10,11,12

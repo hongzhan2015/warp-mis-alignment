@@ -272,6 +272,58 @@ Confirm each output ends with `WarpTools pipeline completed successfully.`
 before submitting MissAlignment. To retry only a subset, edit the last line,
 for example `queue ts in 4,7,11`.
 
+#### Archive-based Warp batch
+
+`warp-pipeline-archive-batch.sub` provides the same TS_3–TS_12 queue while
+keeping each expanded project in local Condor scratch. Before submission,
+create one gzip-compressed archive per project from the common parent:
+
+```bash
+cd /staging/hzhan3/warp-miss-alignment-test/2810_g1
+for n in {3..12}; do
+  tar -czf "output_TS_${n}_run001.tar.gz" "output_TS_${n}_run001"
+done
+```
+
+Each archive must contain its top-level directory, for example:
+
+```text
+output_TS_3_run001.tar.gz
+└── output_TS_3_run001/
+    ├── config.yml
+    ├── TS_3_Imod/split_tilts/*.mrc
+    ├── TS_3_Imod/mdoc/*.mdoc
+    └── warp_alignment/TS_3/*.{xf,tlt}
+```
+
+Verify the archives before removing or moving the expanded staging folders:
+
+```bash
+for n in {3..12}; do
+  gzip -t "output_TS_${n}_run001.tar.gz" || break
+  tar -tzf "output_TS_${n}_run001.tar.gz" | head
+done
+```
+
+Then submit:
+
+```bash
+chmod +x run_warp_pipeline_archive.sh run_warp_pipeline.sh
+condor_submit warp-pipeline-archive-batch.sub
+```
+
+For a single TS_2 archive test, submit `warp-pipeline-archive.sub` instead.
+
+Each job copies its archive to local scratch, extracts it, runs all seven Warp
+stages, and creates a new gzip archive locally. Only after that succeeds does
+it replace the identically named staging archive via a temporary staging
+filename. A failed Warp stage is also packaged when the wrapper remains alive,
+preserving diagnostics and reusable partial results. A hard eviction can end
+the job before packaging, in which case the original input archive remains
+unchanged. The submit file requests 100 GB of local disk; increase it when the
+compressed input, expanded data, Warp products, and replacement archive need
+more space.
+
 After every required Warp job passes, inspect each project's `config.yml` and
 make sure all training, Warp settings, and output paths reference that same
 `TS_N` project—not the original TS_2 directory. Then queue the separate
