@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Relocate absolute project paths embedded in archived Warp XML files."""
+"""Relocate absolute project paths embedded in archived Warp metadata."""
 
 from pathlib import Path
 import argparse
@@ -24,14 +24,19 @@ def main() -> None:
         rf"(?=/|[<>'\"\s]|$)"
     )
 
-    xml_files = sorted(args.xml_root.rglob("*.xml"))
-    if not xml_files:
-        raise FileNotFoundError(f"No XML files found below {args.xml_root}")
+    metadata_files = sorted(
+        path
+        for pattern in ("*.xml", "*.settings", "*.tomostar")
+        for path in args.xml_root.rglob(pattern)
+        if path.is_file()
+    )
+    if not metadata_files:
+        raise FileNotFoundError(f"No Warp metadata files found below {args.xml_root}")
 
     files_changed = 0
     paths_changed = 0
-    for xml_file in xml_files:
-        original = xml_file.read_text(encoding="utf-8")
+    for metadata_file in metadata_files:
+        original = metadata_file.read_text(encoding="utf-8")
         replacements = 0
 
         def relocate(match: re.Match[str]) -> str:
@@ -42,13 +47,13 @@ def main() -> None:
 
         updated = project_path.sub(relocate, original)
         if updated != original:
-            xml_file.write_text(updated, encoding="utf-8")
+            metadata_file.write_text(updated, encoding="utf-8")
             files_changed += 1
             paths_changed += replacements
 
     print(
-        f"Warp XML relocation: {paths_changed} path(s) rewritten "
-        f"in {files_changed} of {len(xml_files)} XML file(s)"
+        f"Warp metadata relocation: {paths_changed} path(s) rewritten "
+        f"in {files_changed} of {len(metadata_files)} file(s)"
     )
 
 

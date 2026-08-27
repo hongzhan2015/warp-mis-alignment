@@ -394,6 +394,28 @@ Results are written separately from the baseline reconstruction under:
 warp_tiltseries/iter8/reconstruction/
 ```
 
+### Reconstruct a downloaded archive locally
+
+`run_warp_reconstruction_local.sh` relocates absolute CHTC project paths in a
+downloaded Warp archive, verifies the matching raw split-tilt MRC files,
+reactivates the tilt series after any prior failure, and runs reconstruction.
+The first argument is the extracted project directory; the optional second
+argument is the output pixel size in Angstroms and defaults to 12:
+
+```bash
+conda activate warp
+chmod +x run_warp_reconstruction_local.sh
+
+./run_warp_reconstruction_local.sh \
+  /mnt/cephfs/mir/pahlquist/Process/CryoFIB/combined/output_TS_3_run001 \
+  12
+```
+
+The same command works for any project named `output_TS_N_runNNN`. Run the
+script from the repository; it locates `rewrite_warp_xml_paths.py` beside
+itself. The relocation helper uses only Python's standard library and does not
+require PyYAML.
+
 ## 6. Build and run PyTom Match Pick
 
 PyTom Match Pick is kept in a separate image to isolate its CuPy stack from
