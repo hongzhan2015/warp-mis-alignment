@@ -1,17 +1,26 @@
-# Reconstruct a tomogram from one MissAlignment iteration snapshot.
-# Arguments: PROJECT_DIRECTORY ITERATION ANGPIX
+# Reconstruct iter8 MissAlignment tomograms from TS_3 through TS_12 archives.
+# Each job preserves warp_tiltseries/TS_N.st.xml as TS_N.st.xml.bak, promotes
+# iter8/TS_N.st.xml, reconstructs at 12 A/px, and writes a separate archive.
 
 universe = vanilla
 executable = run_warp_reconstruction.sh
-arguments = /staging/hzhan3/warp-miss-alignment-test/2810_g1/output_TS_2_run001 8 12
+transfer_input_files = rewrite_warp_xml_paths.py
 
-log = logs/warp_reconstruction_$(Cluster)_$(Process).log
-error = logs/warp_reconstruction_$(Cluster)_$(Process).err
-output = logs/warp_reconstruction_$(Cluster)_$(Process).out
+project_root = /staging/hzhan3/warp-miss-alignment-test/2810_g1
+input_archive = $(project_root)/output_TS_$(ts)_run001_miss-alignment.tar.gz
+output_archive = $(project_root)/output_TS_$(ts)_run001_miss-alignment-reconstructed.tar.gz
+iteration = 8
+reconstruction_angpix = 12
+arguments = $(input_archive) $(output_archive) output_TS_$(ts)_run001 $(iteration) $(reconstruction_angpix)
+
+log = logs/warp_reconstruction_TS_$(ts)_$(Cluster)_$(Process).log
+error = logs/warp_reconstruction_TS_$(ts)_$(Cluster)_$(Process).err
+output = logs/warp_reconstruction_TS_$(ts)_$(Cluster)_$(Process).out
 
 container_image = osdf:///chtc/staging/hzhan3/warp-miss-alignment.sif
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
+transfer_output_files = ""
 
 requirements = (HasCHTCStaging == true)
 +WantGPULab = true
@@ -21,6 +30,6 @@ request_gpus = 1
 gpus_minimum_memory = 10000M
 request_cpus = 4
 request_memory = 32GB
-request_disk = 40GB
+request_disk = 100GB
 
-queue 1
+queue ts in 3,4,5,6,7,8,9,10,11,12

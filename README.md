@@ -370,29 +370,45 @@ remain idle longer than the Warp jobs because GPUs this large are scarcer.
 
 ### Reconstruct a MissAlignment iteration
 
-`run_warp_reconstruction.sub` reconstructs directly from the Warp XML snapshot
-written by MissAlignment in `warp_tiltseries/iterN/`. Its three arguments are
-the project directory, iteration number, and reconstruction pixel size. The
-included TS_2 example reconstructs `iter8` at `12 A`:
+`run_warp_reconstruction.sub` queues archive-based reconstruction for TS_3
+through TS_12. Each job copies its
+`output_TS_N_run001_miss-alignment.tar.gz` input to local Condor scratch,
+extracts it, and reconstructs `iter8` at `12 A`.
+
+Before reconstruction, the launcher preserves the active Warp XML exactly as
+it appeared in the input archive:
 
 ```text
-arguments = /staging/hzhan3/warp-miss-alignment-test/2810_g1/output_TS_2_run001 8 12
+warp_tiltseries/TS_N.st.xml.bak
 ```
 
-Change `8` to the iteration you want to evaluate, confirm that the matching
-directory contains an XML file, and submit:
+It then copies `warp_tiltseries/iter8/TS_N.st.xml` to
+`warp_tiltseries/TS_N.st.xml`, relocates archived absolute paths to local
+scratch, reactivates the series, and reconstructs through the active XML. The
+input archive is never overwritten. Successful results are saved separately
+as:
+
+```text
+output_TS_N_run001_miss-alignment-reconstructed.tar.gz
+```
+
+Submit the batch with:
 
 ```bash
-ls /staging/hzhan3/warp-miss-alignment-test/2810_g1/output_TS_2_run001/warp_tiltseries/iter8/*.xml
 mkdir -p logs
 condor_submit run_warp_reconstruction.sub
 ```
 
-Results are written separately from the baseline reconstruction under:
+To test one series first, change the final line to `queue ts in 3`. Change
+`iteration = 8` or `reconstruction_angpix = 12` near the top of the submit
+file when needed. Within each result archive, the reconstruction is under:
 
 ```text
-warp_tiltseries/iter8/reconstruction/
+output_TS_N_run001/warp_tiltseries/reconstruction/
 ```
+
+The launcher also packages the current project and worker diagnostics when
+Warp exits with an error, while returning a non-zero Condor exit status.
 
 ### Reconstruct a downloaded archive locally
 
