@@ -484,6 +484,13 @@ threshold:
 condor_submit pytom-match.sub
 ```
 
+The batch requests 64 GB of system RAM. A multi-gigabyte tomogram requires
+several simultaneous arrays for filtering, score/orientation maps, and
+candidate extraction, so its peak RAM use can be much larger than the MRC file
+on disk. `gpus_minimum_memory` controls GPU memory separately and remains
+10,000 MB. If a representative series exceeds 64 GB, measure its peak usage
+and raise `request_memory` before submitting the full batch.
+
 Only one staging file is produced per series:
 
 ```text

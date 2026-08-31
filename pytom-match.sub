@@ -34,7 +34,7 @@ requirements = (HasCHTCStaging == true)
 request_gpus = 1
 gpus_minimum_memory = 10000M
 request_cpus = 4
-request_memory = 32GB
+request_memory = 64GB
 request_disk = 80GB
 
 queue ts in 1,2,3,4,5,6,7,8,9,10,11,12
