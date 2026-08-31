@@ -1,0 +1,47 @@
+# Re-extract particle coordinates from archived PyTom matching outputs.
+# Edit TARGET, INPUT_PREFIX, CUTOFF, MAX_PARTICLES, and the queue list.
+
+universe = vanilla
+executable = run_pytom_extract_archive.sh
+
+ROOT = /staging/h/hzhan3/pytom_match_pick_test
+
+# For the existing 80S archives named output_picker_TS_N.tar.gz:
+TARGET = 80S
+INPUT_PREFIX = output_picker
+CUTOFF = 0.20
+MAX_PARTICLES = 5000
+
+# Example for FHV, if its matching archives are named
+# output_picker_FHV_TS_N.tar.gz, change to:
+# TARGET = FHV
+# INPUT_PREFIX = output_picker_FHV
+
+INPUT_ARCHIVE = $(ROOT)/$(INPUT_PREFIX)_TS_$(ts).tar.gz
+OUTPUT_ARCHIVE = $(ROOT)/output_extracted_$(TARGET)_TS_$(ts)_cutoff_$(CUTOFF)_n$(MAX_PARTICLES).tar.gz
+
+arguments = "$(INPUT_ARCHIVE)" "$(OUTPUT_ARCHIVE)" "$(TARGET)" "TS_$(ts)" "$(CUTOFF)" "$(MAX_PARTICLES)"
+
+log = logs/pytom_extract_$(TARGET)_TS_$(ts)_$(Cluster)_$(Process).log
+error = logs/pytom_extract_$(TARGET)_TS_$(ts)_$(Cluster)_$(Process).err
+output = logs/pytom_extract_$(TARGET)_TS_$(ts)_$(Cluster)_$(Process).out
+
+container_image = osdf:///chtc/staging/hzhan3/pytom-match-pick.sif
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_output_files = ""
+
+requirements = (HasCHTCStaging == true)
+
+# The current container imports CuPy while starting the extraction command, so
+# request a GPU even though candidate extraction itself is primarily CPU work.
++WantGPULab = true
++GPUJobLength = "long"
+request_gpus = 1
+gpus_minimum_memory = 1000M
+request_cpus = 4
+request_memory = 48GB
+request_disk = 80GB
+
+# Start with one series. After it succeeds, use 1,2,3,...,12.
+queue ts in 3

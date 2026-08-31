@@ -498,6 +498,39 @@ Only one staging file is produced per series:
 /staging/h/hzhan3/pytom_match_pick_test/output_picker_TS_N.tar.gz
 ```
 
+### Re-extract PyTom candidates at a chosen cutoff
+
+Candidate extraction can be repeated without rerunning template matching. Edit
+the target-specific settings near the top of `pytom-extract-archive.sub`:
+
+```condor
+TARGET = 80S
+INPUT_PREFIX = output_picker
+CUTOFF = 0.20
+MAX_PARTICLES = 5000
+```
+
+`CUTOFF` is the PyTom correlation-score cutoff (between 0 and 1), and
+`MAX_PARTICLES` is an upper limit. Use `CUTOFF = auto` to let PyTom estimate the
+cutoff automatically. For FHV archives named `output_picker_FHV_TS_N.tar.gz`,
+set `TARGET = FHV` and `INPUT_PREFIX = output_picker_FHV`.
+
+The executable unpacks the matching archive in Condor scratch, relocates the
+absolute paths stored in the PyTom job JSON, runs `pytom_extract_candidates.py`,
+and writes a small result archive containing the particle STAR file, extraction
+plot, parameters, and job metadata:
+
+```bash
+mkdir -p logs
+condor_submit pytom-extract-archive.sub
+```
+
+The output name records all important extraction settings, for example:
+
+```text
+output_extracted_80S_TS_3_cutoff_0.20_n5000.tar.gz
+```
+
 The archive contains the score/orientation outputs, job JSON, extracted
 particle STAR, run parameters, template, mask, and Warp XML. To test one
 series, change the final submit line to `queue ts in 1`. A failed matching run
