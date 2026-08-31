@@ -34,6 +34,8 @@ requirements = (HasCHTCStaging == true)
 request_gpus = 1
 gpus_minimum_memory = 10000M
 request_cpus = 4
+# The executable uses --volume-split 2 2 2 for GPU memory. This request is
+# host RAM and remains important because PyTom also allocates CPU-side arrays.
 request_memory = 64GB
 request_disk = 80GB
 

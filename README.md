@@ -476,9 +476,10 @@ shared 80S inputs are `templates/80S_12.00Apx.mrc` and
 
 Each job validates that the template and mask shapes agree and that the
 template/tomogram voxel sizes agree, copies inputs to local Condor scratch,
-uses one assigned GPU, and splits the tomogram into `2x2x1` subvolumes. After
-matching, it runs PyTom candidate extraction with the automatic score
-threshold:
+uses one assigned GPU, splits the tomogram into `2x2x2` subvolumes, and enables
+random-phase correction with a fixed random seed (`45132`) for reproducible
+runs. After matching, it runs PyTom candidate extraction with the automatic
+score threshold:
 
 ```bash
 condor_submit pytom-match.sub

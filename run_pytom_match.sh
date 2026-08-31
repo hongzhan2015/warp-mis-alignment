@@ -140,7 +140,9 @@ printf '%s\n' \
     "warp_xml=$warp_xml" \
     "particle_diameter_angstrom=$particle_diameter" \
     "max_particles=$max_particles" \
-    "volume_split=2 2 1" \
+    "volume_split=2 2 2" \
+    "random_phase_correction=true" \
+    "rng_seed=45132" \
     > "$result_directory/run_parameters.txt"
 
 child_pid=""
@@ -161,7 +163,9 @@ set +e
     --destination "$result_directory" \
     --particle-diameter "$particle_diameter" \
     --warp-xml-file "$local_xml" \
-    --volume-split 2 2 1 \
+    --volume-split 2 2 2 \
+    --random-phase-correction \
+    --rng-seed 45132 \
     --gpu-ids 0 &
 child_pid=$!
 wait "$child_pid"
