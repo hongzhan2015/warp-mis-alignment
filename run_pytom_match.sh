@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 8 ]]; then
-    echo "Usage: $0 TOMOGRAM TEMPLATE MASK WARP_XML OUTPUT.tar.gz SERIES_NAME PARTICLE_DIAMETER MAX_PARTICLES" >&2
+if [[ $# -ne 8 && $# -ne 11 ]]; then
+    echo "Usage: $0 TOMOGRAM TEMPLATE MASK WARP_XML OUTPUT.tar.gz SERIES_NAME PARTICLE_DIAMETER MAX_PARTICLES [SPLIT_X SPLIT_Y SPLIT_Z]" >&2
     exit 2
 fi
 
@@ -14,6 +14,9 @@ output_archive=$5
 series_name=$6
 particle_diameter=$7
 max_particles=$8
+split_x=${9:-4}
+split_y=${10:-4}
+split_z=${11:-2}
 
 for input_file in "$tomogram" "$template" "$mask" "$warp_xml"; do
     if [[ ! -r "$input_file" ]]; then
@@ -38,6 +41,12 @@ if [[ ! "$max_particles" =~ ^[1-9][0-9]*$ ]]; then
     echo "MAX_PARTICLES must be a positive integer: $max_particles" >&2
     exit 2
 fi
+for split_value in "$split_x" "$split_y" "$split_z"; do
+    if [[ ! "$split_value" =~ ^[1-9][0-9]*$ ]]; then
+        echo "Volume-split values must be positive integers: $split_x $split_y $split_z" >&2
+        exit 2
+    fi
+done
 
 output_parent=$(dirname "$output_archive")
 if [[ ! -d "$output_parent" || ! -w "$output_parent" ]]; then
@@ -117,6 +126,7 @@ echo "Warp XML: $warp_xml"
 echo "Series: $series_name"
 echo "Particle diameter: $particle_diameter A"
 echo "Maximum extracted candidates: $max_particles"
+echo "Volume split: $split_x $split_y $split_z"
 echo "Local results: $result_directory"
 echo "Output archive: $output_archive"
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<not set>}"
@@ -140,7 +150,7 @@ printf '%s\n' \
     "warp_xml=$warp_xml" \
     "particle_diameter_angstrom=$particle_diameter" \
     "max_particles=$max_particles" \
-    "volume_split=2 2 2" \
+    "volume_split=$split_x $split_y $split_z" \
     "random_phase_correction=true" \
     "rng_seed=45132" \
     > "$result_directory/run_parameters.txt"
@@ -163,7 +173,7 @@ set +e
     --destination "$result_directory" \
     --particle-diameter "$particle_diameter" \
     --warp-xml-file "$local_xml" \
-    --volume-split 2 2 2 \
+    --volume-split "$split_x" "$split_y" "$split_z" \
     --random-phase-correction \
     --rng-seed 45132 \
     --gpu-ids 0 &

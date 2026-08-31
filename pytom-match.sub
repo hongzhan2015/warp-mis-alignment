@@ -16,7 +16,13 @@ OUTPUT_ARCHIVE = $(ROOT)/output_picker_TS_$(ts).tar.gz
 PARTICLE_DIAMETER = 300
 MAX_PARTICLES = 5000
 
-arguments = $(TOMOGRAM) $(TEMPLATE) $(MASK) $(WARP_XML) $(OUTPUT_ARCHIVE) TS_$(ts) $(PARTICLE_DIAMETER) $(MAX_PARTICLES)
+# An 11 GB RTX 2080 Ti ran out of GPU memory with 2x2x2. These values create
+# smaller chunks while keeping random-phase correction enabled.
+VOLUME_SPLIT_X = 4
+VOLUME_SPLIT_Y = 4
+VOLUME_SPLIT_Z = 2
+
+arguments = $(TOMOGRAM) $(TEMPLATE) $(MASK) $(WARP_XML) $(OUTPUT_ARCHIVE) TS_$(ts) $(PARTICLE_DIAMETER) $(MAX_PARTICLES) $(VOLUME_SPLIT_X) $(VOLUME_SPLIT_Y) $(VOLUME_SPLIT_Z)
 
 log = logs/pytom_match_TS_$(ts)_$(Cluster)_$(Process).log
 error = logs/pytom_match_TS_$(ts)_$(Cluster)_$(Process).err
@@ -34,7 +40,7 @@ requirements = (HasCHTCStaging == true)
 request_gpus = 1
 gpus_minimum_memory = 10000M
 request_cpus = 4
-# The executable uses --volume-split 2 2 2 for GPU memory. This request is
+# The executable uses --volume-split 4 4 2 for GPU memory. This request is
 # host RAM and remains important because PyTom also allocates CPU-side arrays.
 request_memory = 64GB
 request_disk = 80GB
