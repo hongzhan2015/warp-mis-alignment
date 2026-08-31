@@ -467,18 +467,33 @@ the PyTom command-line entry point. Its `voltools` dependency queries for a GPU
 even when invoked with `--help`, and CHTC build nodes do not expose a compatible
 runtime NVIDIA driver. The GPU smoke job performs that runtime validation.
 
-`pytom-match.sub` is configured for the final TS_2 MissAlignment
-reconstruction and its matching Warp XML. Before submitting, replace the
-`TEMPLATE` and `MASK` paths and set `PARTICLE_DIAMETER` in Angstrom for the
-target structure. The wrapper uses one assigned GPU and splits the tomogram
-into `2x2x1` subvolumes to reduce GPU memory use:
+`pytom-match.sub` queues TS_1 through TS_12 from
+`/staging/h/hzhan3/pytom_match_pick_test`. It expects each 12 A/px tomogram and
+matching Warp XML to be named `TS_N.st_12.00Apx.mrc` and `TS_N.st.xml`. The
+shared 80S inputs are `templates/80S_12.00Apx.mrc` and
+`templates/80S_mask.mrc`. Check the configured 300 A particle diameter and
+5000-particle upper limit before submission.
+
+Each job validates that the template and mask shapes agree and that the
+template/tomogram voxel sizes agree, copies inputs to local Condor scratch,
+uses one assigned GPU, and splits the tomogram into `2x2x1` subvolumes. After
+matching, it runs PyTom candidate extraction with the automatic score
+threshold:
 
 ```bash
 condor_submit pytom-match.sub
 ```
 
-Match maps, the job JSON, and other results persist under the staging-hosted
-`DESTINATION` defined in the submit file.
+Only one staging file is produced per series:
+
+```text
+/staging/h/hzhan3/pytom_match_pick_test/output_picker_TS_N.tar.gz
+```
+
+The archive contains the score/orientation outputs, job JSON, extracted
+particle STAR, run parameters, template, mask, and Warp XML. To test one
+series, change the final submit line to `queue ts in 1`. A failed matching run
+still packages any partial diagnostics it produced and exits non-zero.
 
 ## 7. Build and test AreTomo3
 
