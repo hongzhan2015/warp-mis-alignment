@@ -17,6 +17,21 @@ max_particles=$8
 split_x=${9:-4}
 split_y=${10:-4}
 split_z=${11:-2}
+low_pass=${PYTOM_LOW_PASS:-none}
+random_phase=${PYTOM_RANDOM_PHASE_CORRECTION:-1}
+matching_options=()
+if [[ "$low_pass" != none ]]; then
+    if [[ ! "$low_pass" =~ ^[0-9]+([.][0-9]+)?$ ]] || ! awk -v value="$low_pass" 'BEGIN {exit !(value > 0)}'; then
+        echo "PYTOM_LOW_PASS must be positive Angstrom or none." >&2
+        exit 2
+    fi
+    matching_options+=(--low-pass "$low_pass")
+fi
+case "$random_phase" in
+    1) matching_options+=(--random-phase-correction --rng-seed 45132) ;;
+    0) ;;
+    *) echo "PYTOM_RANDOM_PHASE_CORRECTION must be 0 or 1." >&2; exit 2 ;;
+esac
 
 for input_file in "$tomogram" "$template" "$mask" "$warp_xml"; do
     if [[ ! -r "$input_file" ]]; then
@@ -127,6 +142,7 @@ echo "Series: $series_name"
 echo "Particle diameter: $particle_diameter A"
 echo "Maximum extracted candidates: $max_particles"
 echo "Volume split: $split_x $split_y $split_z"
+echo "Low-pass resolution: $low_pass A; random-phase correction: $random_phase"
 echo "Local results: $result_directory"
 echo "Output archive: $output_archive"
 echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-<not set>}"
@@ -151,7 +167,8 @@ printf '%s\n' \
     "particle_diameter_angstrom=$particle_diameter" \
     "max_particles=$max_particles" \
     "volume_split=$split_x $split_y $split_z" \
-    "random_phase_correction=true" \
+    "low_pass_angstrom=$low_pass" \
+    "random_phase_correction=$random_phase" \
     "rng_seed=45132" \
     > "$result_directory/run_parameters.txt"
 
@@ -174,8 +191,7 @@ set +e
     --particle-diameter "$particle_diameter" \
     --warp-xml-file "$local_xml" \
     --volume-split "$split_x" "$split_y" "$split_z" \
-    --random-phase-correction \
-    --rng-seed 45132 \
+    "${matching_options[@]}" \
     --gpu-ids 0 &
 child_pid=$!
 wait "$child_pid"
